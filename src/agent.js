@@ -204,17 +204,23 @@ async function run({ message, rejected, draft, current, memory, version, history
 
   for (let attempt = 0; attempt <= MAX_REPAIRS; attempt++) {
     let res;
+    const request = {
+      model: MODEL,
+      max_tokens: 16000,
+      output_config: { effort: EFFORT },
+      system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
+      tools: [TOOL],
+      messages,
+    };
     try {
-      res = await client.beta.messages.create({
-        model: MODEL,
-        max_tokens: 16000,
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
-        output_config: { effort: EFFORT },
-        system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
-        tools: [TOOL],
-        messages,
-      });
+      try {
+        // If a safety classifier declines the request, let the API retry it on a fallback model.
+        res = await client.beta.messages.create({ ...request, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' });
+      } catch (err) {
+        if (!(err instanceof (Anthropic.default || Anthropic).BadRequestError)) throw err;
+        console.error('Request with fallbacks was rejected, retrying without:', err.message);
+        res = await client.messages.create(request);
+      }
     } catch (err) {
       const C = Anthropic.default || Anthropic;
       const e = new Error(

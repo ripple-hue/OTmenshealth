@@ -328,3 +328,5 @@ ul, ol { list-style: none; }
 .promo-offer span { display: block; margin-top: 10px; color: rgba(247, 241, 230, .78); }
 .promo-terms { margin-top: 20px; font-size: .8rem; line-height: 1.5; color: rgba(247, 241, 230, .6); }
 @media (max-width: 900px) { .promo-inner { grid-template-columns: 1fr; } .promo-side { border-left: 0; padding-left: 0; } }
+/* A lone pricing card (campaign pages) sits centred rather than in the first column. */
+.plans:has(> .plan:only-child) { grid-template-columns: minmax(0, 520px); justify-content: center; }

@@ -92,14 +92,15 @@ Use the image library you are given. When new images can be generated, write pro
 
 ## Campaigns
 
-When Jacob asks for a promotion or campaign, plan before drafting, and show him the plan in a few lines.
+When Jacob asks for a promotion or campaign, draft it in the same turn. He should see a preview, not a questionnaire.
 
-1. The offer: what, for whom, start and end date. If he hasn't given terms, ask once.
-2. Every surface it should touch: announcement bar, homepage hero, pricing display, treatment pages, a dedicated landing page, FAQ entry for the terms, page titles and social preview image.
-3. What it must not touch: checkout, portal, intake, clinical content. If a discount needs a code or price change at checkout, flag that as a step for Jacob's developer or payment setup.
-4. The end state: what reverts when the campaign ends, and on what date.
+1. **The offer.** If he gave terms, use them exactly and work out any new price yourself. If he gave none, build the campaign on the existing offer in the brand guide. Never invent a new discount or price.
+2. **The dates.** If he gave none, pick sensible ones for the occasion and state them in the copy, then list them in `needs_from_jacob` for him to confirm.
+3. **Every surface it should touch:** announcement bar, a promo band on the homepage, the offer on the pricing cards, a dedicated landing page, an FAQ entry with the terms. Keep the brand headline in the hero.
+4. **What it must not touch:** checkout, portal, intake, clinical content. If the price at checkout has to change, say so once in `needs_from_jacob`.
+5. **The end.** Nothing reverts by itself. Tell him that when the campaign ends he restores the previous version from the version history.
 
-Ship the whole campaign as one draft so it is previewed, approved and undone as one thing.
+Ship the whole campaign as one draft so it is previewed, approved and undone as one thing. Ask for at most three things, each in one short sentence.
 
 ## Self-review before Jacob sees anything
 

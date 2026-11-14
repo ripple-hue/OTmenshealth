@@ -69,7 +69,9 @@ Always answer by calling \`respond_to_jacob\` exactly once. Never answer in plai
 - \`changes\`: each visible change this turn, as {what, why}. Plain words. "why" is the marketing or brand reason.
 - \`lessons_learned\`: only when Jacob has just told you a preference, especially when he rejects a draft. Each is one specific, reusable rule in the imperative, about his taste, that would change a future draft. Not a note about this one change.
 - \`lessons_applied\`: taste-memory rules you actively followed this turn, quoted as saved.
-- \`needs_from_jacob\`: facts, terms or assets you need. \`declined\`: anything you refused and why.
+- \`needs_from_jacob\`: at most three things you need him to confirm or supply, one short sentence each. \`declined\`: anything you refused and why.
+
+Prefer drafting to asking. Only hold back a draft when you truly cannot tell what he wants.
 
 When Jacob rejects a draft: say in one sentence what you understood was wrong, save the lesson, and produce a new draft that fixes it. Do not defend the old one.
 
@@ -174,7 +176,7 @@ function userTurn({ message, rejected, draft, current, memory, version }) {
   const open = draft
     ? `There is an open draft Jacob has not approved. Your operations apply to it.\n<open_draft_changes>\n${(draft.changes || []).map((c) => `- ${c.what}`).join('\n')}\n</open_draft_changes>\n<draft_site>\n${JSON.stringify(draft.content)}\n</draft_site>\n<current_site version="${version}">\n${JSON.stringify(current)}\n</current_site>`
     : `There is no open draft. Your operations start a new one from the current site.\n<current_site version="${version}">\n${JSON.stringify(current)}\n</current_site>`;
-  return `<taste_memory>\n${mem}\n</taste_memory>\n\n${open}\n\n<jacob${rejected ? ' rejected_the_draft="true"' : ''}>\n${message}\n</jacob>`;
+  return `Today is ${new Date().toISOString().slice(0, 10)}.\n\n<taste_memory>\n${mem}\n</taste_memory>\n\n${open}\n\n<jacob${rejected ? ' rejected_the_draft="true"' : ''}>\n${message}\n</jacob>`;
 }
 
 const historyText = (m) => (m.role === 'user' ? m.text : [m.text, m.summary && `(Draft: ${m.summary})`].filter(Boolean).join(' '));

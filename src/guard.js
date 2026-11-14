@@ -10,21 +10,29 @@ const IMAGES_DIR = path.join(__dirname, '..', 'public', 'img');
 const VISUALS = ['checklist', 'plan', 'trend', 'report', 'plate'];
 
 // The section library, as the agent sees it. `req` fields must be present and non-empty.
+const THEMES = ['paper', 'cream', 'champagne', 'ink'];
+const VARIANTS = { hero: ['photo', 'arch', 'statement'], steps: ['cards', 'staggered'], tracks: ['cards', 'expand'], plansTeaser: ['cards', 'tilted'], cta: ['plain', 'image'] };
+const THEMED = ['steps', 'feature', 'tracks', 'plansTeaser', 'faq', 'compare', 'cta', 'statement', 'marquee'];
+
+// The section library, as the agent sees it. `req` fields must be present and non-empty.
 const SPEC = {
-  hero: { req: ['headline', 'body', 'image', 'cta'], doc: 'Dark photo hero. Fields: eyebrow, headline, body, image, imageAlt, cta{label,href}, link{label,href}, chips[string]. First section of the home page only.' },
-  facts: { req: ['items'], doc: 'Row of up to 4 short facts. items[{value,label}]. Values must be facts from the brand guide.' },
-  steps: { req: ['headline', 'steps'], doc: 'Three numbered steps. Fields: anchor, eyebrow, headline, steps[3 x {title,body,visual: checklist|plan|trend}], cta{label,href}.' },
-  feature: { req: ['headline', 'body'], doc: 'Split layout: copy left, visual right. Fields: eyebrow, headline, body, points[string], visual: report, link{label,href}.' },
-  tracks: { req: ['headline', 'items'], doc: 'Three photo cards. Fields: eyebrow, headline, aside, items[{code,kicker,title,body,image,imageAlt,href}], link{label,href}.' },
-  plansTeaser: { req: ['headline', 'plans'], doc: 'Short membership summary. Fields: eyebrow, headline, body, plans[{tier: silver|gold,name,price,per,note}], cta{label,href}.' },
+  hero: { req: ['headline', 'body', 'cta'], doc: 'Opens the home page. Always dark. variant: photo (full-bleed photo, headline over it, the current look) | arch (headline fills the left, photo in a tall arched frame on the right, optional floating member tag) | statement (no photo, the headline set enormous across the whole width). Fields: eyebrow, headline, body, image, imageAlt (photo and arch need image), cta{label,href}, link{label,href}, chips[string]; arch only: tag: gold|silver, note (short line on a floating pill).' },
+  statement: { req: ['headline'], doc: 'One very large typographic line on its own band. The loudest thing in the library after the hero. Fields: eyebrow, headline, body, cta{label,href}, link{label,href}. Default theme ink.' },
+  marquee: { req: ['items'], doc: 'A slow scrolling strip of short italic words or phrases, e.g. treatment names. Fields: items[6-12 strings], label. Default theme champagne.' },
+  facts: { req: ['items'], doc: 'Row of up to 4 short facts on a dark band. items[{value,label}]. Values must be facts from the brand guide.' },
+  steps: { req: ['headline', 'steps'], doc: 'Three numbered steps. variant: cards (three equal centred cards) | staggered (cards step down like a staircase with large italic numerals). Fields: anchor, eyebrow, headline, steps[3 x {title,body,visual: checklist|plan|trend}], cta{label,href}.' },
+  feature: { req: ['headline', 'body'], doc: 'Split layout: copy one side, a visual or photo the other. Fields: eyebrow, headline, body, points[string], visual: report OR image+imageAlt (a tall photo), flip: true puts the picture on the left, link{label,href}. Default theme cream.' },
+  tracks: { req: ['headline', 'items'], doc: 'Three treatment photos. variant: cards (photo above text) | expand (tall photo panels, text over the photo, the hovered one widens). Fields: eyebrow, headline, aside, items[{code,kicker,title,body,image,imageAlt,href}], link{label,href}.' },
+  plansTeaser: { req: ['headline', 'plans'], doc: 'Short membership summary. variant: cards | tilted (the two cards overlap at an angle like physical objects; strongest on theme ink). Fields: eyebrow, headline, body, plans[{tier: silver|gold,name,price,per,note}], cta{label,href}. Default theme cream.' },
   faq: { req: ['headline', 'items'], doc: 'Questions. Fields: eyebrow, headline, items[{q,a}].' },
-  cta: { req: ['headline', 'cta'], doc: 'Closing call to action. Fields: headline, body, cta{label,href}.' },
+  cta: { req: ['headline', 'cta'], doc: 'Closing call to action. variant: plain | image (rounded panel with a dimmed photo behind; image optional, defaults to the hero photo). Fields: headline, body, cta{label,href}. Default theme champagne.' },
   promo: { req: ['headline', 'body', 'cta'], doc: 'Campaign band on a dark background. Fields: eyebrow, headline, body, offer (short, e.g. "3 months free"), offerNote, cta{label,href}, terms (plain-language conditions and end date).' },
   pageHeader: { req: ['headline', 'body'], doc: 'Light page header for inner pages. Fields: eyebrow, headline, body, chips[string]. First section of a page.' },
   trackList: { req: ['items'], doc: 'Editorial rows, one per treatment track. items[{anchor,code,kicker,title,body,tags[string],image,imageAlt,visual: report|plate,plateWord,rx:boolean}].' },
   plans: { req: ['headline', 'plans'], doc: 'Full pricing cards. Fields: eyebrow, headline, body, plans[{tier,name,badge,price,per,annual,annualWas,offer,tagline,groups[{label,items[{text,value}]}],cta{label,href}}], footnote.' },
-  compare: { req: ['headline', 'columns', 'rows'], doc: 'Comparison table. Fields: eyebrow, headline, columns[string], rows[{label,values[true|false|string]}].' },
+  compare: { req: ['headline', 'columns', 'rows'], doc: 'Comparison table. Fields: eyebrow, headline, columns[string], rows[{label,values[true|false|string]}]. Default theme cream.' },
 };
+const THEME_DOC = `Sections that take a theme (${THEMED.join(', ')}) accept theme: ${THEMES.join(' | ')}. Paper and cream are the quiet light backgrounds, champagne is warm gold, ink is the dark one. Alternating them is how a page gets rhythm and contrast.`;
 
 const COMPLIANCE = [
   [/\bguarantee[ds]?\b/i, 'promises a guaranteed result'],
@@ -47,7 +55,7 @@ const SLOP = [
 ];
 
 const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
-const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code']);
+const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag']);
 
 const images = () => fs.readdirSync(IMAGES_DIR).filter((f) => /\.(jpg|png|webp)$/.test(f)).map((f) => '/img/' + f);
 
@@ -105,7 +113,10 @@ function validate(content, prev) {
         const v = sec[f];
         if (v == null || v === '' || (Array.isArray(v) && !v.length)) s.push(`Section "${sec.id}" (${sec.type}) is missing "${f}".`);
       }
-      if (sec.type === 'hero' && (key !== 'home' || page.sections[0] !== sec)) s.push('The photo hero can only open the home page.');
+      if (sec.type === 'hero' && (key !== 'home' || page.sections[0] !== sec)) s.push('The hero can only open the home page.');
+      if (sec.type === 'hero' && sec.variant !== 'statement' && !sec.image) s.push(`Section "${sec.id}" needs an image for this hero variant.`);
+      if (sec.variant != null && !(VARIANTS[sec.type] || []).includes(sec.variant)) s.push(`Section "${sec.id}" (${sec.type}) has no variant "${sec.variant}". Options: ${(VARIANTS[sec.type] || ['none']).join(', ')}.`);
+      if (sec.theme != null && (!THEMED.includes(sec.type) || !THEMES.includes(sec.theme))) s.push(`Section "${sec.id}" (${sec.type}) cannot take theme "${sec.theme}".`);
     }
   }
   add('Built from the section library', s);
@@ -190,4 +201,4 @@ function diff(a, b) {
   return out;
 }
 
-module.exports = { validate, diff, SPEC, images, LOCKED };
+module.exports = { validate, diff, SPEC, THEME_DOC, images, LOCKED };

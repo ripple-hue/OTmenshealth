@@ -27,6 +27,9 @@ const tick =
 
 const logo = `<svg class="logo" viewBox="0 0 66 26" role="img" aria-label="OT"><path fill-rule="evenodd" d="M13 0h6a13 13 0 0 1 0 26h-6a13 13 0 0 1 0-26zm1 8.5a4.5 4.5 0 0 0 0 9h4a4.5 4.5 0 0 0 0-9z"/><path d="M35 0h31v8.5H55.5V26h-10V8.5H35z"/></svg>`;
 
+const THEMES = ['paper', 'cream', 'champagne', 'ink'];
+const theme = (s, def = 'paper') => ` theme-${THEMES.includes(s.theme) ? s.theme : def}`;
+
 const btnPrimary = (c) => (c ? `<a class="btn btn-gold" href="${safeHref(c.href)}">${esc(c.label)}</a>` : '');
 const btnInk = (c) =>
   c ? `<a class="btn btn-ink" href="${safeHref(c.href)}"><span>${esc(c.label)}</span><i>${arrow}</i></a>` : '';
@@ -124,10 +127,10 @@ const sections = {
     </section>`,
 
   steps: (s) => `
-    <section class="band" id="${esc(s.anchor || s.id)}" data-section="${esc(s.id)}">
+    <section class="band${theme(s)}" id="${esc(s.anchor || s.id)}" data-section="${esc(s.id)}">
       <div class="wrap">
         <header class="head head-center">${eyebrow(s.eyebrow)}<h2 class="title">${rich(s.headline)}</h2></header>
-        <ol class="steps">
+        <ol class="steps${s.variant === 'staggered' ? ' steps-staggered' : ''}">
           ${s.steps
             .map(
               (st, i) => `
@@ -145,8 +148,8 @@ const sections = {
     </section>`,
 
   feature: (s) => `
-    <section class="band band-cream" data-section="${esc(s.id)}">
-      <div class="wrap feature">
+    <section class="band${theme(s, 'cream')}" data-section="${esc(s.id)}">
+      <div class="wrap feature${s.flip ? ' feature-flip' : ''}">
         <div class="feature-copy">
           ${eyebrow(s.eyebrow)}
           <h2 class="title">${rich(s.headline)}</h2>
@@ -154,18 +157,18 @@ const sections = {
           ${s.points?.length ? `<ul class="points">${s.points.map((p) => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}
           <p class="actions">${textLink(s.link)}</p>
         </div>
-        <div class="feature-visual">${visuals[s.visual] ? visuals[s.visual]() : ''}</div>
+        <div class="feature-visual">${s.image ? `<img class="feature-img" src="${safeHref(s.image)}" alt="${esc(s.imageAlt)}" loading="lazy">` : visuals[s.visual] ? visuals[s.visual]() : ''}</div>
       </div>
     </section>`,
 
   tracks: (s) => `
-    <section class="band" data-section="${esc(s.id)}">
+    <section class="band${theme(s)}" data-section="${esc(s.id)}">
       <div class="wrap">
         <header class="head head-split">
           <div>${eyebrow(s.eyebrow)}<h2 class="title">${rich(s.headline)}</h2></div>
           <p class="aside">${esc(s.aside)}</p>
         </header>
-        <div class="cards">
+        <div class="cards${s.variant === 'expand' ? ' cards-expand' : ''}">
           ${s.items
             .map(
               (t) => `
@@ -185,7 +188,7 @@ const sections = {
     </section>`,
 
   plansTeaser: (s) => `
-    <section class="band band-cream" data-section="${esc(s.id)}">
+    <section class="band${theme(s, 'cream')}" data-section="${esc(s.id)}">
       <div class="wrap teaser">
         <div class="teaser-copy">
           ${eyebrow(s.eyebrow)}
@@ -193,7 +196,7 @@ const sections = {
           <p class="lede">${esc(s.body)}</p>
           <p class="actions">${btnInk(s.cta)}</p>
         </div>
-        <div class="teaser-plans">
+        <div class="teaser-plans${s.variant === 'tilted' ? ' teaser-tilted' : ''}">
           ${s.plans
             .map(
               (p) => `
@@ -209,7 +212,7 @@ const sections = {
     </section>`,
 
   faq: (s) => `
-    <section class="band" data-section="${esc(s.id)}">
+    <section class="band${theme(s)}" data-section="${esc(s.id)}">
       <div class="wrap faq">
         <header class="head">${eyebrow(s.eyebrow)}<h2 class="title">${rich(s.headline)}</h2></header>
         <div class="faq-list">
@@ -219,11 +222,28 @@ const sections = {
     </section>`,
 
   cta: (s) => `
-    <section class="closing" data-section="${esc(s.id)}">
+    <section class="closing${s.variant === 'image' ? ' closing-image' : theme(s, 'champagne')}" data-section="${esc(s.id)}">
       <div class="wrap closing-inner">
+        ${s.variant === 'image' ? `<img class="closing-bg" src="${safeHref(s.image || '/img/hero.jpg')}" alt="" loading="lazy">` : ''}
         <h2 class="title">${rich(s.headline)}</h2>
         <p class="lede">${esc(s.body)}</p>
         <p class="actions actions-center">${btnPrimary(s.cta)}</p>
+      </div>
+    </section>`,
+
+  statement: (s) => `
+    <section class="statement${theme(s, 'ink')}" data-section="${esc(s.id)}">
+      <div class="wrap">
+        ${eyebrow(s.eyebrow)}
+        <h2 class="display">${rich(s.headline)}</h2>
+        ${s.body || s.cta ? `<div class="statement-foot">${s.body ? `<p class="lede">${esc(s.body)}</p>` : ''}<p class="actions">${btnPrimary(s.cta)}${textLink(s.link)}</p></div>` : ''}
+      </div>
+    </section>`,
+
+  marquee: (s) => `
+    <section class="marquee${theme(s, 'champagne')}" data-section="${esc(s.id)}" aria-label="${esc(s.label || 'What we offer')}">
+      <div class="marquee-track">
+        ${[0, 1].map((n) => `<p${n ? ' aria-hidden="true"' : ''}>${(s.items || []).map((i) => `<span>${esc(i)}</span>`).join('')}</p>`).join('')}
       </div>
     </section>`,
 
@@ -320,7 +340,7 @@ const sections = {
     </section>`,
 
   compare: (s) => `
-    <section class="band band-cream" data-section="${esc(s.id)}">
+    <section class="band${theme(s, 'cream')}" data-section="${esc(s.id)}">
       <div class="wrap compare">
         <header class="head head-center">${eyebrow(s.eyebrow)}<h2 class="title">${rich(s.headline)}</h2></header>
         <table>
@@ -338,6 +358,34 @@ const sections = {
       </div>
     </section>`,
 };
+
+const heroPhoto = sections.hero;
+
+const heroCopy = (s) => `
+          ${eyebrow(s.eyebrow)}
+          <h1 class="display">${rich(s.headline)}</h1>
+          <p class="lede">${esc(s.body)}</p>
+          <p class="actions">${btnPrimary(s.cta)}${textLink(s.link)}</p>
+          ${s.chips?.length ? `<p class="chips">${s.chips.map((c) => `<span>${esc(c)}</span>`).join('')}</p>` : ''}`;
+
+const heroArch = (s) => `
+    <section class="hero hero-arch" data-section="${esc(s.id)}">
+      <div class="wrap hero-inner">
+        <div class="hero-copy">${heroCopy(s)}</div>
+        <div class="hero-art">
+          <div class="arch"><img src="${safeHref(s.image)}" alt="${esc(s.imageAlt)}" fetchpriority="high"></div>
+          ${s.tag === 'gold' || s.tag === 'silver' ? keyTag(s.tag, s.tag === 'gold' ? 'Gold' : 'Silver') : ''}
+          ${s.note ? `<p class="hero-note">${tick}<span>${esc(s.note)}</span></p>` : ''}
+        </div>
+      </div>
+    </section>`;
+
+const heroStatement = (s) => `
+    <section class="hero hero-statement" data-section="${esc(s.id)}">
+      <div class="wrap hero-inner">${heroCopy(s)}</div>
+    </section>`;
+
+sections.hero = (s) => (s.variant === 'arch' ? heroArch(s) : s.variant === 'statement' ? heroStatement(s) : heroPhoto(s));
 
 /* ---------- page shell ---------- */
 
@@ -431,4 +479,4 @@ function renderLockedInner(site, name) {
 // Areas the site agent must never touch. They exist only as placeholders.
 const LOCKED = { '/checkout': 'Checkout', '/portal': 'The member portal', '/intake': 'Medical intake' };
 
-module.exports = { renderPage, renderLocked, LOCKED, sectionTypes: Object.keys(sections) };
+module.exports = { renderPage, renderLocked, LOCKED, THEMES, sectionTypes: Object.keys(sections) };

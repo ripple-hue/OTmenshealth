@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
-const { validate, SPEC, images, LOCKED } = require('./guard');
+const { validate, SPEC, THEME_DOC, images, LOCKED } = require('./guard');
 
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AGENT_EFFORT || 'medium';
@@ -43,6 +43,8 @@ The site is a JSON document: \`global\` (announcement bar, nav, navCta, footer) 
 ## Section library
 ${library}
 
+${THEME_DOC}
+
 Field rules: \`href\` must be an existing page path (optionally with #anchor), a #anchor, or one of ${Object.keys(LOCKED).join(', ')} (link only). \`image\` must come from the image library. Give every new section a unique, descriptive \`id\`.
 
 ## Image library
@@ -56,7 +58,7 @@ Always answer by calling \`respond_to_jacob\` exactly once. Never answer in plai
 
 - \`message\`: what you say to Jacob. Two or three plain sentences, in his language, no jargon about JSON, sections or operations. No lists.
 - \`operations\`: the edits, applied in order to the draft. Leave empty if you are only answering a question or need one thing clarified first.
-  - {"op":"update_section","page":"home","id":"home-hero","fields":{...}} replaces those top-level fields of the section. To change one item in an array, send the whole array.
+  - {"op":"update_section","page":"home","id":"home-hero","fields":{...}} replaces those top-level fields of the section. To change one item in an array, send the whole array. Set a field to null to remove it.
   - {"op":"add_section","page":"home","after_id":"home-hero","section":{...}} (omit after_id to add at the top).
   - {"op":"remove_section","page":"home","id":"..."}
   - {"op":"move_section","page":"home","id":"...","after_id":"..."} (omit after_id to move to the top).
@@ -118,7 +120,7 @@ function applyOps(base, ops, current) {
         const pg = page(o.page);
         const sec = pg.sections[index(pg, o.id, o.page)];
         const { id, ...fields } = o.fields || {};
-        Object.assign(sec, fields);
+        for (const [k, v] of Object.entries(fields)) v == null ? delete sec[k] : (sec[k] = v); // null removes a field
         break;
       }
       case 'add_section':

@@ -6,11 +6,23 @@
       "href": "/membership"
     },
     "nav": [
-      { "label": "How it works", "href": "/#how-it-works" },
-      { "label": "Treatments", "href": "/treatments" },
-      { "label": "Membership", "href": "/membership" }
+      {
+        "label": "How it works",
+        "href": "/#how-it-works"
+      },
+      {
+        "label": "Treatments",
+        "href": "/treatments"
+      },
+      {
+        "label": "Membership",
+        "href": "/membership"
+      }
     ],
-    "navCta": { "label": "Become a member", "href": "/membership" },
+    "navCta": {
+      "label": "Become a member",
+      "href": "/membership"
+    },
     "footer": {
       "line": "Bloodwork first. Then a plan from a licensed provider.",
       "legal": "Prescription treatments require an online evaluation by a licensed provider, who decides whether treatment is appropriate. Not everyone qualifies. This is a proof-of-concept site built for demonstration and is not the live OTMENS website."
@@ -30,18 +42,56 @@
           "body": "Bloodwork, a licensed provider and prescription treatment in one membership. From $39.99 a month.",
           "image": "/img/hero.jpg",
           "imageAlt": "A cyclist climbing a mountain road in fog",
-          "cta": { "label": "Become a member", "href": "/membership" },
-          "link": { "label": "How it works", "href": "#how-it-works" },
-          "chips": ["U.S.-licensed clinicians", "Available in all 50 states"]
+          "cta": {
+            "label": "Become a member",
+            "href": "/membership"
+          },
+          "link": {
+            "label": "How it works",
+            "href": "#how-it-works"
+          },
+          "chips": [
+            "U.S.-licensed clinicians",
+            "Available in all 50 states"
+          ]
         },
         {
           "id": "home-facts",
           "type": "facts",
           "items": [
-            { "value": "2", "label": "functional blood panels a year, included" },
-            { "value": "50", "label": "states served" },
-            { "value": "5 min", "label": "to join and schedule your first draw" },
-            { "value": "$39.99", "label": "a month to start" }
+            {
+              "value": "2",
+              "label": "functional blood panels a year, included"
+            },
+            {
+              "value": "50",
+              "label": "states served"
+            },
+            {
+              "value": "5 min",
+              "label": "to join and schedule your first draw"
+            },
+            {
+              "value": "$39.99",
+              "label": "a month to start"
+            }
+          ]
+        },
+        {
+          "id": "home-marquee",
+          "type": "marquee",
+          "label": "What we offer",
+          "items": [
+            "Blood panels",
+            "TRT",
+            "Tirzepatide",
+            "Genetic testing",
+            "NAD+",
+            "Enclomiphene",
+            "Mitochondria test",
+            "Tadalafil",
+            "Gut microbiome",
+            "Sermorelin"
           ]
         },
         {
@@ -67,7 +117,10 @@
               "visual": "trend"
             }
           ],
-          "cta": { "label": "Choose your plan", "href": "/membership" }
+          "cta": {
+            "label": "Choose your plan",
+            "href": "/membership"
+          }
         },
         {
           "id": "home-diagnostics",
@@ -81,7 +134,10 @@
             "Retest and compare against your own baseline"
           ],
           "visual": "report",
-          "link": { "label": "See what we treat", "href": "/treatments" }
+          "link": {
+            "label": "See what we treat",
+            "href": "/treatments"
+          }
         },
         {
           "id": "home-tracks",
@@ -118,7 +174,10 @@
               "href": "/treatments#sexual-health"
             }
           ],
-          "link": { "label": "All six tracks", "href": "/treatments" }
+          "link": {
+            "label": "All six tracks",
+            "href": "/treatments"
+          }
         },
         {
           "id": "home-membership",
@@ -127,10 +186,25 @@
           "headline": "Two plans. *Plain* pricing.",
           "body": "Silver covers your bloodwork and member pricing. Gold adds a dedicated advisor and concierge medical care.",
           "plans": [
-            { "tier": "silver", "name": "Silver", "price": "$39.99", "per": "/ month", "note": "Two blood panels a year, included" },
-            { "tier": "gold", "name": "Gold", "price": "$199", "per": "/ month", "note": "Concierge medical care on demand" }
+            {
+              "tier": "silver",
+              "name": "Silver",
+              "price": "$39.99",
+              "per": "/ month",
+              "note": "Two blood panels a year, included"
+            },
+            {
+              "tier": "gold",
+              "name": "Gold",
+              "price": "$199",
+              "per": "/ month",
+              "note": "Concierge medical care on demand"
+            }
           ],
-          "cta": { "label": "Compare plans", "href": "/membership" }
+          "cta": {
+            "label": "Compare plans",
+            "href": "/membership"
+          }
         },
         {
           "id": "home-faq",
@@ -161,7 +235,10 @@
           "type": "cta",
           "headline": "Start with your *numbers.*",
           "body": "Join in under five minutes and schedule your first blood draw.",
-          "cta": { "label": "Become a member", "href": "/membership" }
+          "cta": {
+            "label": "Become a member",
+            "href": "/membership"
+          }
         }
       ]
     },
@@ -176,7 +253,16 @@
           "eyebrow": "Treatments",
           "headline": "Treatment that starts with your *bloodwork.*",
           "body": "Six therapeutic tracks, prescribed by U.S.-licensed clinicians when your results and history support it.",
-          "chips": ["Genetic testing", "TRT", "Tirzepatide", "Mitochondria test", "NAD+", "Enclomiphene", "Tadalafil", "Gut microbiome"]
+          "chips": [
+            "Genetic testing",
+            "TRT",
+            "Tirzepatide",
+            "Mitochondria test",
+            "NAD+",
+            "Enclomiphene",
+            "Tadalafil",
+            "Gut microbiome"
+          ]
         },
         {
           "id": "treatments-list",
@@ -188,7 +274,12 @@
               "kicker": "Know your numbers",
               "title": "Advanced Diagnostics",
               "body": "Blood biomarker panels, plus genetic, mitochondria and gut microbiome testing. Every other track starts here.",
-              "tags": ["Blood panel", "Genetic testing", "Mitochondria test", "Gut microbiome"],
+              "tags": [
+                "Blood panel",
+                "Genetic testing",
+                "Mitochondria test",
+                "Gut microbiome"
+              ],
               "visual": "report",
               "rx": false
             },
@@ -198,7 +289,10 @@
               "kicker": "Hormone therapy",
               "title": "Raise Testosterone",
               "body": "From hormone replacement to natural ways of raising your own levels, chosen with your provider from your results.",
-              "tags": ["TRT", "Enclomiphene"],
+              "tags": [
+                "TRT",
+                "Enclomiphene"
+              ],
               "image": "/img/hormone.jpg",
               "imageAlt": "A glass vial with a gold cap on a stone block",
               "rx": true
@@ -209,7 +303,9 @@
               "kicker": "Metabolic",
               "title": "Lose Weight",
               "body": "Medical weight loss with GLP-1 therapy and the products that support it.",
-              "tags": ["Tirzepatide"],
+              "tags": [
+                "Tirzepatide"
+              ],
               "image": "/img/metabolic.jpg",
               "imageAlt": "A frosted glass bottle on a limestone slab",
               "rx": true
@@ -220,7 +316,9 @@
               "kicker": "Peptides",
               "title": "Peptide Therapy",
               "body": "Sermorelin, prescribed and monitored by your provider.",
-              "tags": ["Sermorelin"],
+              "tags": [
+                "Sermorelin"
+              ],
               "visual": "plate",
               "plateWord": "Sermorelin",
               "rx": true
@@ -231,7 +329,10 @@
               "kicker": "Longevity",
               "title": "NAD+ and Supplements",
               "body": "NAD+ and supplements chosen from your results, at member pricing.",
-              "tags": ["NAD+", "Supplements"],
+              "tags": [
+                "NAD+",
+                "Supplements"
+              ],
               "image": "/img/longevity.jpg",
               "imageAlt": "An amber glass bottle beside a dish of capsules",
               "rx": false
@@ -242,7 +343,9 @@
               "kicker": "Sexual health",
               "title": "Sexual Health",
               "body": "Tadalafil, prescribed after a provider reviews your history.",
-              "tags": ["Tadalafil"],
+              "tags": [
+                "Tadalafil"
+              ],
               "image": "/img/sexual-health.jpg",
               "imageAlt": "A matte black bottle with tablets on a basalt block",
               "rx": true
@@ -254,7 +357,10 @@
           "type": "cta",
           "headline": "Every track starts with *membership.*",
           "body": "Join, get your bloodwork done, and your provider takes it from there.",
-          "cta": { "label": "Choose your plan", "href": "/membership" }
+          "cta": {
+            "label": "Choose your plan",
+            "href": "/membership"
+          }
         }
       ]
     },
@@ -280,17 +386,29 @@
               "groups": [
                 {
                   "label": "Bloodwork",
-                  "items": [{ "text": "2 OT functional blood panels a year", "value": "Included. $898 value" }]
+                  "items": [
+                    {
+                      "text": "2 OT functional blood panels a year",
+                      "value": "Included. $898 value"
+                    }
+                  ]
                 },
                 {
                   "label": "Member pricing",
                   "items": [
-                    { "text": "Member pricing on supplements" },
-                    { "text": "Member pricing on additional diagnostics" }
+                    {
+                      "text": "Member pricing on supplements"
+                    },
+                    {
+                      "text": "Member pricing on additional diagnostics"
+                    }
                   ]
                 }
               ],
-              "cta": { "label": "Join Silver", "href": "/checkout?plan=silver" }
+              "cta": {
+                "label": "Join Silver",
+                "href": "/checkout?plan=silver"
+              }
             },
             {
               "tier": "gold",
@@ -306,19 +424,31 @@
                 {
                   "label": "Your care team",
                   "items": [
-                    { "text": "A dedicated wellness advisor and health coaching", "value": "Included. $5,988 value" },
-                    { "text": "Concierge medical care on demand" }
+                    {
+                      "text": "A dedicated wellness advisor and health coaching",
+                      "value": "Included. $5,988 value"
+                    },
+                    {
+                      "text": "Concierge medical care on demand"
+                    }
                   ]
                 },
                 {
                   "label": "Plus everything in Silver",
                   "items": [
-                    { "text": "OT functional blood panels" },
-                    { "text": "Member pricing on supplements and diagnostics" }
+                    {
+                      "text": "OT functional blood panels"
+                    },
+                    {
+                      "text": "Member pricing on supplements and diagnostics"
+                    }
                   ]
                 }
               ],
-              "cta": { "label": "Join Gold", "href": "/checkout?plan=gold" }
+              "cta": {
+                "label": "Join Gold",
+                "href": "/checkout?plan=gold"
+              }
             }
           ],
           "footnote": "Prescription treatments require a provider's evaluation. Not everyone qualifies."
@@ -328,16 +458,67 @@
           "type": "compare",
           "eyebrow": "Side by side",
           "headline": "What you *get.*",
-          "columns": ["Silver", "Gold"],
+          "columns": [
+            "Silver",
+            "Gold"
+          ],
           "rows": [
-            { "label": "Monthly price", "values": ["$39.99", "$199"] },
-            { "label": "Annual price", "values": ["$479", "$1,795"] },
-            { "label": "OT functional blood panels", "values": [true, true] },
-            { "label": "Member pricing on supplements", "values": [true, true] },
-            { "label": "Member pricing on additional diagnostics", "values": [true, true] },
-            { "label": "Dedicated wellness advisor", "values": [false, true] },
-            { "label": "Health coaching", "values": [false, true] },
-            { "label": "Concierge medical care on demand", "values": [false, true] }
+            {
+              "label": "Monthly price",
+              "values": [
+                "$39.99",
+                "$199"
+              ]
+            },
+            {
+              "label": "Annual price",
+              "values": [
+                "$479",
+                "$1,795"
+              ]
+            },
+            {
+              "label": "OT functional blood panels",
+              "values": [
+                true,
+                true
+              ]
+            },
+            {
+              "label": "Member pricing on supplements",
+              "values": [
+                true,
+                true
+              ]
+            },
+            {
+              "label": "Member pricing on additional diagnostics",
+              "values": [
+                true,
+                true
+              ]
+            },
+            {
+              "label": "Dedicated wellness advisor",
+              "values": [
+                false,
+                true
+              ]
+            },
+            {
+              "label": "Health coaching",
+              "values": [
+                false,
+                true
+              ]
+            },
+            {
+              "label": "Concierge medical care on demand",
+              "values": [
+                false,
+                true
+              ]
+            }
           ]
         },
         {

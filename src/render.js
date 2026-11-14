@@ -95,17 +95,26 @@ const keyTag = (tier, name) => `
 const sections = {
   hero: (s) => `
     <section class="hero" data-section="${esc(s.id)}">
-      <img class="hero-img" src="${safeHref(s.image)}" alt="${esc(s.imageAlt)}" fetchpriority="high">
       <div class="wrap hero-inner">
-        ${eyebrow(s.eyebrow)}
-        <h1 class="display">${rich(s.headline)}</h1>
-        <div class="hero-foot">
-          <div>
-            ${s.chips?.length ? `<p class="chips">${s.chips.map((c) => `<span>${esc(c)}</span>`).join('')}</p>` : ''}
-            <p class="lede">${esc(s.body)}</p>
-          </div>
+        <div class="hero-copy">
+          ${eyebrow(s.eyebrow)}
+          <h1 class="display">${rich(s.headline)}</h1>
+          <p class="lede">${esc(s.body)}</p>
           <p class="actions">${btnPrimary(s.cta)}${textLink(s.link)}</p>
+          ${s.chips?.length ? `<p class="chips">${s.chips.map((c) => `<span>${esc(c)}</span>`).join('')}</p>` : ''}
         </div>
+        <div class="hero-art">
+          <div class="arch"><img src="${safeHref(s.image)}" alt="${esc(s.imageAlt)}" fetchpriority="high"></div>
+          ${keyTag('gold', 'Gold')}
+          <p class="hero-note">${tick}<span>Reviewed by a licensed provider</span></p>
+        </div>
+      </div>
+    </section>`,
+
+  marquee: (s) => `
+    <section class="marquee" data-section="${esc(s.id)}" aria-label="${esc(s.label || 'What we offer')}">
+      <div class="marquee-track">
+        ${[0, 1].map((n) => `<p${n ? ' aria-hidden="true"' : ''}>${s.items.map((i) => `<span>${esc(i)}</span>`).join('')}</p>`).join('')}
       </div>
     </section>`,
 
@@ -178,7 +187,7 @@ const sections = {
     </section>`,
 
   plansTeaser: (s) => `
-    <section class="band band-cream" data-section="${esc(s.id)}">
+    <section class="band band-ink" data-section="${esc(s.id)}">
       <div class="wrap teaser">
         <div class="teaser-copy">
           ${eyebrow(s.eyebrow)}
@@ -370,7 +379,8 @@ ${body}
 </main>
 ${footer(g)}
 <script>
-(function(){var n=document.querySelector('[data-nav]');if(!n)return;var f=function(){n.classList.toggle('is-stuck',window.scrollY>40)};f();window.addEventListener('scroll',f,{passive:true})})();
+(function(){var n=document.querySelector('[data-nav]');if(n){var f=function(){n.classList.toggle('is-stuck',window.scrollY>40)};f();window.addEventListener('scroll',f,{passive:true})}
+if(!('IntersectionObserver' in window)||matchMedia('(prefers-reduced-motion: reduce)').matches)return;document.documentElement.classList.add('js');var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px'});document.querySelectorAll('.head,.step,.card,.feature>*,.teaser-copy,.row,.plan,.faq-list,.closing-inner,.compare table').forEach(function(el,i){el.classList.add('rv');io.observe(el)})})();
 </script>
 </body>
 </html>`;

@@ -316,3 +316,15 @@ ul, ol { list-style: none; }
   .hero-img { object-position: 80% 30%; }
   .announce .dot { display: none; }
 }
+
+/* ---------- promo ---------- */
+.promo { background: radial-gradient(70% 120% at 85% 0%, rgba(216, 188, 126, .28), transparent 65%), var(--ink); color: var(--cream); padding: clamp(64px, 8vw, 104px) 0; }
+.promo-inner { display: grid; grid-template-columns: 1.3fr 1fr; gap: clamp(32px, 6vw, 96px); align-items: center; }
+.promo .eyebrow, .promo .title em { color: var(--champagne); }
+.promo .lede { color: rgba(247, 241, 230, .82); margin-top: 20px; }
+.promo-side { border-left: 1px solid rgba(247, 241, 230, .18); padding-left: clamp(24px, 4vw, 56px); }
+.promo-offer { margin-bottom: 26px; }
+.promo-offer b { display: block; font-family: var(--serif); font-style: italic; font-weight: 400; font-size: clamp(2.6rem, 5vw, 4rem); line-height: 1; color: var(--champagne); }
+.promo-offer span { display: block; margin-top: 10px; color: rgba(247, 241, 230, .78); }
+.promo-terms { margin-top: 20px; font-size: .8rem; line-height: 1.5; color: rgba(247, 241, 230, .6); }
+@media (max-width: 900px) { .promo-inner { grid-template-columns: 1fr; } .promo-side { border-left: 0; padding-left: 0; } }

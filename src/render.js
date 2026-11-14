@@ -8,7 +8,14 @@ const esc = (s) =>
 // Headlines mark their one accent word with *asterisks*: "Own Your *Health.*"
 const rich = (s) => esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-const safeHref = (h) => (/^(\/|#)/.test(String(h || '')) ? esc(h) : '#');
+// Previews are served under a prefix (e.g. /view/draft); page links get that prefix, assets do not.
+let BASE = '';
+const isAsset = (h) => /^\/(img|fonts)\//.test(h) || h === '/styles.css';
+const safeHref = (h) => {
+  h = String(h || '');
+  if (!/^(\/|#)/.test(h)) return '#';
+  return esc(h.startsWith('/') && BASE && !isAsset(h) ? BASE + h : h);
+};
 
 const eyebrow = (t) => (t ? `<p class="eyebrow"><span class="dot"></span>${esc(t)}</p>` : '');
 
@@ -220,6 +227,22 @@ const sections = {
       </div>
     </section>`,
 
+  promo: (s) => `
+    <section class="promo" data-section="${esc(s.id)}">
+      <div class="wrap promo-inner">
+        <div>
+          ${eyebrow(s.eyebrow)}
+          <h2 class="title">${rich(s.headline)}</h2>
+          <p class="lede">${esc(s.body)}</p>
+        </div>
+        <div class="promo-side">
+          ${s.offer ? `<p class="promo-offer"><b>${esc(s.offer)}</b>${s.offerNote ? `<span>${esc(s.offerNote)}</span>` : ''}</p>` : ''}
+          <p class="actions">${btnPrimary(s.cta)}</p>
+          ${s.terms ? `<p class="promo-terms">${esc(s.terms)}</p>` : ''}
+        </div>
+      </div>
+    </section>`,
+
   pageHeader: (s) => `
     <section class="page-head" data-section="${esc(s.id)}">
       <div class="wrap">
@@ -322,10 +345,10 @@ function header(g, overHero) {
   return `
   <a class="announce" href="${safeHref(g.announcement.href)}"><span class="dot"></span>${esc(g.announcement.text)} <u>${esc(g.announcement.linkLabel)}</u></a>
   <header class="nav${overHero ? ' nav-dark' : ''}" data-nav>
-    <a class="nav-logo" href="/" aria-label="OTMENS home">${logo}</a>
+    <a class="nav-logo" href="${safeHref('/')}" aria-label="OTMENS home">${logo}</a>
     <nav class="nav-links" aria-label="Main">${g.nav.map((n) => `<a href="${safeHref(n.href)}">${esc(n.label)}</a>`).join('')}</nav>
     <span class="nav-end">
-      <a class="nav-login" href="/portal">Log in</a>
+      <a class="nav-login" href="${safeHref('/portal')}">Log in</a>
       <a class="btn btn-gold btn-sm" href="${safeHref(g.navCta.href)}">${esc(g.navCta.label)}</a>
     </span>
   </header>`;
@@ -336,13 +359,27 @@ function footer(g) {
   <footer class="footer">
     <div class="wrap footer-inner">
       <div>${logo}<p class="footer-line">${esc(g.footer.line)}</p></div>
-      <nav aria-label="Footer">${g.nav.map((n) => `<a href="${safeHref(n.href)}">${esc(n.label)}</a>`).join('')}<a href="/portal">Log in</a></nav>
+      <nav aria-label="Footer">${g.nav.map((n) => `<a href="${safeHref(n.href)}">${esc(n.label)}</a>`).join('')}<a href="${safeHref('/portal')}">Log in</a></nav>
       <p class="legal">${esc(g.footer.legal)}</p>
     </div>
   </footer>`;
 }
 
-function renderPage(site, key) {
+function highlightScript(ids, scroll) {
+  return `<style>.ot-changed{outline:2px solid #D8BC7E;outline-offset:-2px;position:relative}.ot-changed::before{content:"Changed";position:absolute;z-index:30;top:10px;right:10px;background:#D8BC7E;color:#17130E;font:500 11px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:7px 10px;border-radius:99px}</style>
+<script>(function(){var ids=${JSON.stringify(ids)};var first;ids.forEach(function(id){var el=document.querySelector('[data-section="'+id+'"]');if(el){el.classList.add('ot-changed');first=first||el}});if(${scroll ? 'true' : 'false'}&&first&&first!==document.querySelector('main>section'))setTimeout(function(){first.scrollIntoView({block:'center'})},150)})();</script>`;
+}
+
+function renderPage(site, key, opts = {}) {
+  BASE = opts.base || '';
+  try {
+    return renderPageInner(site, key, opts);
+  } finally {
+    BASE = '';
+  }
+}
+
+function renderPageInner(site, key, opts) {
   const page = site.pages[key];
   const g = site.global;
   const overHero = page.sections[0]?.type === 'hero';
@@ -372,13 +409,26 @@ ${footer(g)}
 <script>
 (function(){var n=document.querySelector('[data-nav]');if(!n)return;var f=function(){n.classList.toggle('is-stuck',window.scrollY>40)};f();window.addEventListener('scroll',f,{passive:true})})();
 </script>
+${opts.highlight?.length ? highlightScript(opts.highlight, opts.scroll !== false) : ''}
 </body>
 </html>`;
 }
 
-function renderLocked(site, name) {
+function renderLocked(site, name, opts = {}) {
+  BASE = opts.base || '';
+  try {
+    return renderLockedInner(site, name);
+  } finally {
+    BASE = '';
+  }
+}
+
+function renderLockedInner(site, name) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(name)}. OTMENS</title><link rel="stylesheet" href="/styles.css"></head>
 <body>${header(site.global, false)}<main><section class="page-head page-head-center"><div class="wrap">${eyebrow('Protected area')}<h1 class="title title-xl">${esc(name)} is <em>off limits.</em></h1><p class="lede">This part of the site is outside the demo. The site agent cannot read or change it.</p><p class="actions actions-center">${textLink({ label: 'Back to the site', href: '/' })}</p></div></section></main>${footer(site.global)}</body></html>`;
 }
 
-module.exports = { renderPage, renderLocked, sectionTypes: Object.keys(sections) };
+// Areas the site agent must never touch. They exist only as placeholders.
+const LOCKED = { '/checkout': 'Checkout', '/portal': 'The member portal', '/intake': 'Medical intake' };
+
+module.exports = { renderPage, renderLocked, LOCKED, sectionTypes: Object.keys(sections) };

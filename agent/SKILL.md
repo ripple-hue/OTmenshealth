@@ -11,10 +11,10 @@ Default AI output looks like AI output. Jacob spots it immediately and distrusts
 
 ## Step 1: Load the brand and Jacob's taste before anything else
 
-Read these two files at the start of every request. They outrank everything in this skill except the hard limits in Step 2.
+The brand guide is included below, and Jacob's taste memory arrives with every message. Use both on every request. They outrank everything in this skill except the hard limits in Step 2.
 
-- `brand/brand-guide.md`: voice, palette, type, offer, pricing facts, approved claims, phrases OTMENS uses and avoids.
-- `brand/taste-memory.md`: what Jacob has approved, what he has rejected and why.
+- Brand guide: voice, palette, type, offer, pricing facts, phrases OTMENS uses and avoids.
+- Taste memory: rules taken from what Jacob has rejected and why.
 
 Never invent a fact about OTMENS: no prices, treatments, clinician names, ratings, review counts or statistics that are not in the brand guide. If a draft needs a fact you don't have, use a visible `[NEEDS FROM JACOB: ...]` marker and list it in your summary. A draft containing a marker cannot be approved.
 
@@ -82,7 +82,7 @@ If a section starts to look like any of these, redesign it.
 
 ## Imagery
 
-Images come from Higgsfield. Write prompts from the image direction in the brand guide.
+Use the image library you are given. When new images can be generated, write prompts from the image direction in the brand guide.
 
 - Product, packaging, environment, texture and lifestyle scenes. No shirtless or body-focused shots, no body comparison, no injection or needle close-ups, no clinical settings implying a doctor is present.
 - No readable text baked into images. Text is set in HTML so it stays on-brand and editable.
@@ -116,10 +116,10 @@ Run this and fix whatever fails:
 
 ## Learning from Jacob
 
-- When he rejects a draft, restate his reason as one specific, reusable rule and save it to `brand/taste-memory.md` with the date and the draft it came from. "Too salesy" becomes "No exclamation marks or urgency words in hero copy", not "be less salesy".
+- When he rejects a draft, restate his reason as one specific, reusable rule and save it as a lesson. "Too salesy" becomes "No exclamation marks or urgency words in hero copy", not "be less salesy".
 - When he approves, record what was distinctive about the draft.
 - In the next attempt, tell him in one line which lesson you applied.
-- If a new instruction conflicts with a saved rule, ask which wins, then update the file.
+- If a new instruction conflicts with a saved rule, ask which wins.
 - Taste rules never override Step 2.
 
 ## Output

@@ -2,7 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { renderPage, renderLocked } = require('./src/render');
+const { renderPage, renderLocked, LOCKED } = require('./src/render');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -17,10 +17,25 @@ const TYPES = {
   '.woff2': 'font/woff2',
 };
 
-// Areas the site agent must never touch. They exist only as placeholders here.
-const LOCKED = { '/checkout': 'Checkout', '/portal': 'The member portal', '/intake': 'Medical intake' };
+// The public website. With STUDIO_URL set it shows whichever version was last pushed live
+// from the Studio; without it, it shows the copy bundled in this repo.
+const STUDIO_URL = (process.env.STUDIO_URL || '').replace(/\/$/, '');
+const bundled = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'site.json'), 'utf8'));
+let cache = { at: 0, site: null };
 
-const loadSite = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'content', 'site.json'), 'utf8'));
+async function loadSite() {
+  if (!STUDIO_URL) return bundled();
+  if (Date.now() - cache.at < 3000 && cache.site) return cache.site;
+  try {
+    const res = await fetch(STUDIO_URL + '/api/published', { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) throw new Error('Studio answered ' + res.status);
+    cache = { at: Date.now(), site: (await res.json()).content };
+  } catch (err) {
+    console.error('Could not reach the Studio, serving the last known version:', err.message);
+    cache = { at: Date.now(), site: cache.site || bundled() };
+  }
+  return cache.site;
+}
 
 const send = (res, code, type, body) => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
@@ -28,11 +43,11 @@ const send = (res, code, type, body) => {
 };
 
 http
-  .createServer((req, res) => {
+  .createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname.replace(/\/+$/, '') || '/';
     try {
-      const site = loadSite();
+      const site = await loadSite();
       const key = Object.keys(site.pages).find((k) => site.pages[k].path === p);
       if (key) return send(res, 200, 'text/html; charset=utf-8', renderPage(site, key));
       if (LOCKED[p]) return send(res, 200, 'text/html; charset=utf-8', renderLocked(site, LOCKED[p]));

@@ -4,10 +4,14 @@
   "description": "OTMENS demo site for the site agent proof of concept",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "studio": "node studio.js"
   },
   "private": true,
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
   }
 }

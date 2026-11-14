@@ -1,0 +1,193 @@
+'use strict';
+// Hard checks every draft must pass before Jacob can approve it.
+// These run in code, after the agent has written a draft, and the agent cannot skip them.
+
+const fs = require('fs');
+const path = require('path');
+const { renderPage, LOCKED, sectionTypes } = require('./render');
+
+const IMAGES_DIR = path.join(__dirname, '..', 'public', 'img');
+const VISUALS = ['checklist', 'plan', 'trend', 'report', 'plate'];
+
+// The section library, as the agent sees it. `req` fields must be present and non-empty.
+const SPEC = {
+  hero: { req: ['headline', 'body', 'image', 'cta'], doc: 'Dark photo hero. Fields: eyebrow, headline, body, image, imageAlt, cta{label,href}, link{label,href}, chips[string]. First section of the home page only.' },
+  facts: { req: ['items'], doc: 'Row of up to 4 short facts. items[{value,label}]. Values must be facts from the brand guide.' },
+  steps: { req: ['headline', 'steps'], doc: 'Three numbered steps. Fields: anchor, eyebrow, headline, steps[3 x {title,body,visual: checklist|plan|trend}], cta{label,href}.' },
+  feature: { req: ['headline', 'body'], doc: 'Split layout: copy left, visual right. Fields: eyebrow, headline, body, points[string], visual: report, link{label,href}.' },
+  tracks: { req: ['headline', 'items'], doc: 'Three photo cards. Fields: eyebrow, headline, aside, items[{code,kicker,title,body,image,imageAlt,href}], link{label,href}.' },
+  plansTeaser: { req: ['headline', 'plans'], doc: 'Short membership summary. Fields: eyebrow, headline, body, plans[{tier: silver|gold,name,price,per,note}], cta{label,href}.' },
+  faq: { req: ['headline', 'items'], doc: 'Questions. Fields: eyebrow, headline, items[{q,a}].' },
+  cta: { req: ['headline', 'cta'], doc: 'Closing call to action. Fields: headline, body, cta{label,href}.' },
+  promo: { req: ['headline', 'body', 'cta'], doc: 'Campaign band on a dark background. Fields: eyebrow, headline, body, offer (short, e.g. "3 months free"), offerNote, cta{label,href}, terms (plain-language conditions and end date).' },
+  pageHeader: { req: ['headline', 'body'], doc: 'Light page header for inner pages. Fields: eyebrow, headline, body, chips[string]. First section of a page.' },
+  trackList: { req: ['items'], doc: 'Editorial rows, one per treatment track. items[{anchor,code,kicker,title,body,tags[string],image,imageAlt,visual: report|plate,plateWord,rx:boolean}].' },
+  plans: { req: ['headline', 'plans'], doc: 'Full pricing cards. Fields: eyebrow, headline, body, plans[{tier,name,badge,price,per,annual,annualWas,offer,tagline,groups[{label,items[{text,value}]}],cta{label,href}}], footnote.' },
+  compare: { req: ['headline', 'columns', 'rows'], doc: 'Comparison table. Fields: eyebrow, headline, columns[string], rows[{label,values[true|false|string]}].' },
+};
+
+const COMPLIANCE = [
+  [/\bguarantee[ds]?\b/i, 'promises a guaranteed result'],
+  [/\b100\s?%/i, 'makes an absolute claim'],
+  [/\b(clinically |scientifically )?proven\b/i, 'claims proof'],
+  [/\bworks for every(one|body)\b/i, 'claims it works for everyone'],
+  [/\b(cures?|cured|miracle|risk[- ]free|no side effects)\b/i, 'makes a cure or no-risk claim'],
+  [/\bno prescription\b|\bwithout a prescription\b|\bprescription[- ]free\b|\bskip the doctor\b|\bno doctor\b|\binstant approval\b|(?<!not )\beveryone qualifies\b/i, 'presents prescription treatment as if no prescription or review is needed'],
+  [/\bbefore[- ](and|&)[- ]after\b/i, 'refers to before-and-after results'],
+  [/\b(lose|drop|shed|gain|add|boost)\s+(up to\s+)?\d+\s?(lbs?|pounds|kg|%|inches)\b/i, 'promises a specific physical outcome'],
+  [/\bin (just |only )?\d+\s(days?|weeks?|months?)\b/i, 'promises a result in a set time'],
+  [/\bFDA[- ]approved\b/i, 'makes an FDA approval claim'],
+  [/\bonly \d+ (left|spots|remaining)\b/i, 'uses false scarcity'],
+  [/\b(embarrassed|ashamed|tired of being|struggling with)\b/i, 'targets a personal insecurity'],
+];
+
+const SLOP = [
+  [/\b(elevate|unlock|seamless(ly)?|cutting[- ]edge|revolutioni[sz]e\w*|empower\w*|game[- ]chang\w+|next[- ]level|reimagin\w+|transform your|your journey|fast-paced)\b/i, 'uses a generic marketing phrase'],
+  [/!/, 'uses an exclamation mark'],
+];
+
+const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
+const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code']);
+
+const images = () => fs.readdirSync(IMAGES_DIR).filter((f) => /\.(jpg|png|webp)$/.test(f)).map((f) => '/img/' + f);
+
+function walk(node, visit, trail = []) {
+  if (Array.isArray(node)) return node.forEach((v, i) => walk(v, visit, trail.concat(i)));
+  if (node && typeof node === 'object') return Object.entries(node).forEach(([k, v]) => walk(v, visit, trail.concat(k)));
+  visit(node, trail);
+}
+
+function texts(content) {
+  const out = [];
+  walk(content, (v, trail) => {
+    const key = [...trail].reverse().find((k) => typeof k === 'string');
+    if (typeof v === 'string' && !SKIP_KEYS.has(key)) out.push({ text: v, key, trail });
+  });
+  return out;
+}
+
+const where = (trail) => {
+  const i = trail.indexOf('sections');
+  return trail[0] === 'pages' && i > 0 ? `${trail[1]} page` : trail[0] === 'global' ? 'site-wide ' + trail[1] : trail.join('.');
+};
+
+const numbers = (content) => new Set(texts(content).flatMap((t) => t.text.match(/\$\d[\d,]*(\.\d+)?|\d+\s?%/g) || []));
+
+function validate(content, prev) {
+  const errors = [];
+  const checks = [];
+  const add = (name, list) => {
+    checks.push({ name, ok: list.length === 0, detail: list.slice(0, 4).join(' ') });
+    errors.push(...list);
+  };
+
+  // 1. Structure and the section library
+  const s = [];
+  const g = content.global || {};
+  if (!g.announcement?.text || !g.navCta?.label || !Array.isArray(g.nav) || !g.footer?.legal) s.push('The site-wide header, announcement or footer is incomplete.');
+  if ((g.nav || []).length > 5) s.push('The navigation has more than five links.');
+  const pages = content.pages || {};
+  if (!pages.home || pages.home.path !== '/') s.push('The home page is missing.');
+  const ids = new Set();
+  const paths = new Set();
+  for (const [key, page] of Object.entries(pages)) {
+    if (!/^\/[a-z0-9-]*$/.test(page.path || '')) s.push(`Page "${key}" has an invalid address.`);
+    if (paths.has(page.path)) s.push(`Two pages share the address ${page.path}.`);
+    paths.add(page.path);
+    if (!page.title || !page.description) s.push(`Page "${key}" needs a title and description.`);
+    if (!Array.isArray(page.sections) || !page.sections.length) s.push(`Page "${key}" has no sections.`);
+    for (const sec of page.sections || []) {
+      const spec = SPEC[sec.type];
+      if (!spec || !sectionTypes.includes(sec.type)) { s.push(`"${sec.type}" is not a section in the library.`); continue; }
+      if (!sec.id || ids.has(sec.id)) s.push(`Section id "${sec.id}" is missing or used twice.`);
+      ids.add(sec.id);
+      for (const f of spec.req) {
+        const v = sec[f];
+        if (v == null || v === '' || (Array.isArray(v) && !v.length)) s.push(`Section "${sec.id}" (${sec.type}) is missing "${f}".`);
+      }
+      if (sec.type === 'hero' && (key !== 'home' || page.sections[0] !== sec)) s.push('The photo hero can only open the home page.');
+    }
+  }
+  add('Built from the section library', s);
+
+  // 2. Protected areas
+  const p = [];
+  for (const page of Object.values(pages)) {
+    if (Object.keys(LOCKED).some((l) => (page.path || '').startsWith(l))) p.push(`${page.path} is a protected area and cannot be a page the agent edits.`);
+  }
+  add('Checkout, portal and medical pages untouched', p);
+
+  // 3. Links and images resolve
+  const l = [];
+  const okImages = images();
+  walk(content, (v, trail) => {
+    const key = trail[trail.length - 1];
+    if (key === 'href') {
+      const base = String(v).split(/[?#]/)[0];
+      const ok = String(v).startsWith('#') || paths.has(base || '/') || Object.keys(LOCKED).includes(base);
+      if (!ok) l.push(`Link "${v}" goes nowhere.`);
+    }
+    if (key === 'image' && !okImages.includes(v)) l.push(`Image "${v}" is not in the image library.`);
+    if (key === 'visual' && !VISUALS.includes(v)) l.push(`Visual "${v}" does not exist.`);
+  });
+  add('Every link and image resolves', l);
+
+  // 4. Health-claim compliance
+  const c = [];
+  const b = [];
+  for (const t of texts(content)) {
+    for (const [re, why] of COMPLIANCE) {
+      const m = t.text.match(re);
+      if (m) c.push(`"${m[0]}" on the ${where(t.trail)} ${why}.`);
+    }
+    for (const [re, why] of SLOP) {
+      const m = t.text.match(re);
+      if (m) b.push(`"${m[0]}" on the ${where(t.trail)} ${why}.`);
+    }
+    if (LIMITS[t.key] && t.text.length > LIMITS[t.key]) b.push(`A ${t.key} on the ${where(t.trail)} is too long (${t.text.length} characters, limit ${LIMITS[t.key]}).`);
+    if (t.key === 'headline' && (t.text.match(/\*/g) || []).length > 2) b.push(`A headline on the ${where(t.trail)} has more than one accent word.`);
+    if (/\*/.test(t.text) && t.key !== 'headline') b.push(`Accent asterisks appear outside a headline on the ${where(t.trail)}.`);
+  }
+  add('Health-claim rules', c);
+  add('Brand voice and layout limits', b);
+
+  // 5. The site still renders
+  const r = [];
+  if (!s.length) {
+    for (const key of Object.keys(pages)) {
+      try {
+        const html = renderPage(content, key);
+        if (!html.includes('</html>') || html.length < 2000) r.push(`Page "${key}" rendered empty.`);
+      } catch (e) {
+        r.push(`Page "${key}" failed to render: ${e.message}`);
+      }
+    }
+  } else r.push('Not rendered because the structure check failed.');
+  add('Every page renders', r);
+
+  // Not errors, but Jacob should see them
+  const before = prev ? numbers(prev) : new Set();
+  const newNumbers = [...numbers(content)].filter((n) => !before.has(n));
+  const markers = texts(content).filter((t) => /\[NEEDS FROM JACOB/i.test(t.text)).map((t) => t.text);
+
+  return { ok: errors.length === 0, errors, checks, newNumbers, markers };
+}
+
+// Which sections differ between two versions, per page.
+function diff(a, b) {
+  const out = { pages: {}, global: JSON.stringify(a.global) !== JSON.stringify(b.global), newPages: [], removedPages: [] };
+  for (const [key, page] of Object.entries(b.pages)) {
+    const old = a.pages[key];
+    if (!old) { out.newPages.push(key); out.pages[key] = page.sections.map((s) => s.id); continue; }
+    const oldById = Object.fromEntries(old.sections.map((s) => [s.id, JSON.stringify(s)]));
+    const changed = page.sections.filter((s) => oldById[s.id] !== JSON.stringify(s)).map((s) => s.id);
+    const reordered = old.sections.map((s) => s.id).filter((id) => page.sections.some((s) => s.id === id)).join() !== page.sections.map((s) => s.id).filter((id) => oldById[id]).join();
+    const removed = old.sections.some((s) => !page.sections.find((n) => n.id === s.id));
+    if (changed.length || reordered || removed) out.pages[key] = changed;
+  }
+  out.removedPages = Object.keys(a.pages).filter((k) => !b.pages[k]);
+  out.any = out.global || out.newPages.length > 0 || out.removedPages.length > 0 || Object.keys(out.pages).length > 0;
+  return out;
+}
+
+module.exports = { validate, diff, SPEC, images, LOCKED };

@@ -1,0 +1,13 @@
+{
+  "name": "otmens-demo-site",
+  "version": "1.0.0",
+  "description": "OTMENS demo site for the site agent proof of concept",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

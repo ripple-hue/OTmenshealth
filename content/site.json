@@ -1,0 +1,366 @@
+{
+  "global": {
+    "announcement": {
+      "text": "Labs, providers, Rx and supplements in one membership.",
+      "linkLabel": "See membership",
+      "href": "/membership"
+    },
+    "nav": [
+      { "label": "How it works", "href": "/#how-it-works" },
+      { "label": "Treatments", "href": "/treatments" },
+      { "label": "Membership", "href": "/membership" }
+    ],
+    "navCta": { "label": "Become a member", "href": "/membership" },
+    "footer": {
+      "line": "Bloodwork first. Then a plan from a licensed provider.",
+      "legal": "Prescription treatments require an online evaluation by a licensed provider, who decides whether treatment is appropriate. Not everyone qualifies. This is a proof-of-concept site built for demonstration and is not the live OTMENS website."
+    }
+  },
+  "pages": {
+    "home": {
+      "path": "/",
+      "title": "OTMENS. Own your health.",
+      "description": "Bloodwork, a licensed provider and prescription treatment in one membership. From $39.99 a month.",
+      "sections": [
+        {
+          "id": "home-hero",
+          "type": "hero",
+          "eyebrow": "Men's health membership",
+          "headline": "Own Your *Health.*",
+          "body": "Bloodwork, a licensed provider and prescription treatment in one membership. From $39.99 a month.",
+          "image": "/img/hero.jpg",
+          "imageAlt": "A cyclist climbing a mountain road in fog",
+          "cta": { "label": "Become a member", "href": "/membership" },
+          "link": { "label": "How it works", "href": "#how-it-works" },
+          "chips": ["U.S.-licensed clinicians", "Available in all 50 states"]
+        },
+        {
+          "id": "home-facts",
+          "type": "facts",
+          "items": [
+            { "value": "2", "label": "functional blood panels a year, included" },
+            { "value": "50", "label": "states served" },
+            { "value": "5 min", "label": "to join and schedule your first draw" },
+            { "value": "$39.99", "label": "a month to start" }
+          ]
+        },
+        {
+          "id": "home-steps",
+          "type": "steps",
+          "anchor": "how-it-works",
+          "eyebrow": "Getting started",
+          "headline": "Three steps, *one plan.*",
+          "steps": [
+            {
+              "title": "Join in five minutes",
+              "body": "Become a member, create your account and schedule your first blood draw.",
+              "visual": "checklist"
+            },
+            {
+              "title": "A plan built for you",
+              "body": "Your care team builds it from your bloodwork, your lifestyle and your goals.",
+              "visual": "plan"
+            },
+            {
+              "title": "We adjust with you",
+              "body": "Retest, compare, and your plan moves with you.",
+              "visual": "trend"
+            }
+          ],
+          "cta": { "label": "Choose your plan", "href": "/membership" }
+        },
+        {
+          "id": "home-diagnostics",
+          "type": "feature",
+          "eyebrow": "Know your numbers",
+          "headline": "It starts with your *bloodwork.*",
+          "body": "Every plan begins with a functional blood panel, reviewed by a licensed provider. Genetic, mitochondria and gut microbiome testing are available when your results call for a closer look.",
+          "points": [
+            "Two functional blood panels a year with every membership",
+            "Results reviewed by a licensed provider",
+            "Retest and compare against your own baseline"
+          ],
+          "visual": "report",
+          "link": { "label": "See what we treat", "href": "/treatments" }
+        },
+        {
+          "id": "home-tracks",
+          "type": "tracks",
+          "eyebrow": "Choose your path",
+          "headline": "What we *treat.*",
+          "aside": "Six therapeutic tracks. Each one starts with your bloodwork.",
+          "items": [
+            {
+              "code": "HR·01",
+              "kicker": "Hormone therapy",
+              "title": "Raise Testosterone",
+              "body": "From hormone replacement to natural ways of raising your own levels.",
+              "image": "/img/hormone.jpg",
+              "imageAlt": "A glass vial with a gold cap on a stone block",
+              "href": "/treatments#hormone"
+            },
+            {
+              "code": "WL·01",
+              "kicker": "Metabolic",
+              "title": "Lose Weight",
+              "body": "Medical weight loss with GLP-1 therapy and the products that support it.",
+              "image": "/img/metabolic.jpg",
+              "imageAlt": "A frosted glass bottle on a limestone slab",
+              "href": "/treatments#metabolic"
+            },
+            {
+              "code": "SX·01",
+              "kicker": "Sexual health",
+              "title": "Sexual Health",
+              "body": "Tadalafil, prescribed after a provider reviews your history.",
+              "image": "/img/sexual-health.jpg",
+              "imageAlt": "A matte black bottle with tablets on a basalt block",
+              "href": "/treatments#sexual-health"
+            }
+          ],
+          "link": { "label": "All six tracks", "href": "/treatments" }
+        },
+        {
+          "id": "home-membership",
+          "type": "plansTeaser",
+          "eyebrow": "Membership",
+          "headline": "Two plans. *Plain* pricing.",
+          "body": "Silver covers your bloodwork and member pricing. Gold adds a dedicated advisor and concierge medical care.",
+          "plans": [
+            { "tier": "silver", "name": "Silver", "price": "$39.99", "per": "/ month", "note": "Two blood panels a year, included" },
+            { "tier": "gold", "name": "Gold", "price": "$199", "per": "/ month", "note": "Concierge medical care on demand" }
+          ],
+          "cta": { "label": "Compare plans", "href": "/membership" }
+        },
+        {
+          "id": "home-faq",
+          "type": "faq",
+          "eyebrow": "Questions",
+          "headline": "Before you *join.*",
+          "items": [
+            {
+              "q": "Do I need a prescription?",
+              "a": "Yes, for prescription treatments. A licensed provider reviews your bloodwork and health history and decides whether treatment is appropriate. Not everyone qualifies."
+            },
+            {
+              "q": "What does Silver include?",
+              "a": "Two OT functional blood panels a year, plus member pricing on supplements and on additional diagnostics. It is $39.99 a month, or $479 for the year."
+            },
+            {
+              "q": "What does Gold add?",
+              "a": "A dedicated wellness advisor, health coaching and concierge medical care on demand. It is $199 a month, or $1,795 for the year."
+            },
+            {
+              "q": "Where is OTMENS available?",
+              "a": "In all 50 states."
+            }
+          ]
+        },
+        {
+          "id": "home-cta",
+          "type": "cta",
+          "headline": "Start with your *numbers.*",
+          "body": "Join in under five minutes and schedule your first blood draw.",
+          "cta": { "label": "Become a member", "href": "/membership" }
+        }
+      ]
+    },
+    "treatments": {
+      "path": "/treatments",
+      "title": "Treatments. OTMENS",
+      "description": "Six therapeutic tracks, prescribed by U.S.-licensed clinicians when your results and history support it.",
+      "sections": [
+        {
+          "id": "treatments-header",
+          "type": "pageHeader",
+          "eyebrow": "Treatments",
+          "headline": "Treatment that starts with your *bloodwork.*",
+          "body": "Six therapeutic tracks, prescribed by U.S.-licensed clinicians when your results and history support it.",
+          "chips": ["Genetic testing", "TRT", "Tirzepatide", "Mitochondria test", "NAD+", "Enclomiphene", "Tadalafil", "Gut microbiome"]
+        },
+        {
+          "id": "treatments-list",
+          "type": "trackList",
+          "items": [
+            {
+              "anchor": "diagnostics",
+              "code": "DX·01",
+              "kicker": "Know your numbers",
+              "title": "Advanced Diagnostics",
+              "body": "Blood biomarker panels, plus genetic, mitochondria and gut microbiome testing. Every other track starts here.",
+              "tags": ["Blood panel", "Genetic testing", "Mitochondria test", "Gut microbiome"],
+              "visual": "report",
+              "rx": false
+            },
+            {
+              "anchor": "hormone",
+              "code": "HR·01",
+              "kicker": "Hormone therapy",
+              "title": "Raise Testosterone",
+              "body": "From hormone replacement to natural ways of raising your own levels, chosen with your provider from your results.",
+              "tags": ["TRT", "Enclomiphene"],
+              "image": "/img/hormone.jpg",
+              "imageAlt": "A glass vial with a gold cap on a stone block",
+              "rx": true
+            },
+            {
+              "anchor": "metabolic",
+              "code": "WL·01",
+              "kicker": "Metabolic",
+              "title": "Lose Weight",
+              "body": "Medical weight loss with GLP-1 therapy and the products that support it.",
+              "tags": ["Tirzepatide"],
+              "image": "/img/metabolic.jpg",
+              "imageAlt": "A frosted glass bottle on a limestone slab",
+              "rx": true
+            },
+            {
+              "anchor": "peptides",
+              "code": "PT·01",
+              "kicker": "Peptides",
+              "title": "Peptide Therapy",
+              "body": "Sermorelin, prescribed and monitored by your provider.",
+              "tags": ["Sermorelin"],
+              "visual": "plate",
+              "plateWord": "Sermorelin",
+              "rx": true
+            },
+            {
+              "anchor": "longevity",
+              "code": "LG·01",
+              "kicker": "Longevity",
+              "title": "NAD+ and Supplements",
+              "body": "NAD+ and supplements chosen from your results, at member pricing.",
+              "tags": ["NAD+", "Supplements"],
+              "image": "/img/longevity.jpg",
+              "imageAlt": "An amber glass bottle beside a dish of capsules",
+              "rx": false
+            },
+            {
+              "anchor": "sexual-health",
+              "code": "SX·01",
+              "kicker": "Sexual health",
+              "title": "Sexual Health",
+              "body": "Tadalafil, prescribed after a provider reviews your history.",
+              "tags": ["Tadalafil"],
+              "image": "/img/sexual-health.jpg",
+              "imageAlt": "A matte black bottle with tablets on a basalt block",
+              "rx": true
+            }
+          ]
+        },
+        {
+          "id": "treatments-cta",
+          "type": "cta",
+          "headline": "Every track starts with *membership.*",
+          "body": "Join, get your bloodwork done, and your provider takes it from there.",
+          "cta": { "label": "Choose your plan", "href": "/membership" }
+        }
+      ]
+    },
+    "membership": {
+      "path": "/membership",
+      "title": "Membership. OTMENS",
+      "description": "Silver at $39.99 a month or Gold at $199 a month. See exactly what each includes.",
+      "sections": [
+        {
+          "id": "membership-plans",
+          "type": "plans",
+          "eyebrow": "Membership",
+          "headline": "Choose your *plan.*",
+          "body": "Two plans. Both include your bloodwork. Pay monthly or save with a year up front.",
+          "plans": [
+            {
+              "tier": "silver",
+              "name": "Silver",
+              "price": "$39.99",
+              "per": "/ month",
+              "annual": "or $479 for the year",
+              "tagline": "Your bloodwork, and member pricing on everything else.",
+              "groups": [
+                {
+                  "label": "Bloodwork",
+                  "items": [{ "text": "2 OT functional blood panels a year", "value": "Included. $898 value" }]
+                },
+                {
+                  "label": "Member pricing",
+                  "items": [
+                    { "text": "Member pricing on supplements" },
+                    { "text": "Member pricing on additional diagnostics" }
+                  ]
+                }
+              ],
+              "cta": { "label": "Join Silver", "href": "/checkout?plan=silver" }
+            },
+            {
+              "tier": "gold",
+              "name": "Gold",
+              "badge": "Most popular",
+              "price": "$199",
+              "per": "/ month",
+              "annual": "or $1,795 for the year",
+              "annualWas": "$2,388",
+              "offer": "Three months free when you pay annually",
+              "tagline": "Concierge medical care on demand. Your doctor in your pocket.",
+              "groups": [
+                {
+                  "label": "Your care team",
+                  "items": [
+                    { "text": "A dedicated wellness advisor and health coaching", "value": "Included. $5,988 value" },
+                    { "text": "Concierge medical care on demand" }
+                  ]
+                },
+                {
+                  "label": "Plus everything in Silver",
+                  "items": [
+                    { "text": "OT functional blood panels" },
+                    { "text": "Member pricing on supplements and diagnostics" }
+                  ]
+                }
+              ],
+              "cta": { "label": "Join Gold", "href": "/checkout?plan=gold" }
+            }
+          ],
+          "footnote": "Prescription treatments require a provider's evaluation. Not everyone qualifies."
+        },
+        {
+          "id": "membership-compare",
+          "type": "compare",
+          "eyebrow": "Side by side",
+          "headline": "What you *get.*",
+          "columns": ["Silver", "Gold"],
+          "rows": [
+            { "label": "Monthly price", "values": ["$39.99", "$199"] },
+            { "label": "Annual price", "values": ["$479", "$1,795"] },
+            { "label": "OT functional blood panels", "values": [true, true] },
+            { "label": "Member pricing on supplements", "values": [true, true] },
+            { "label": "Member pricing on additional diagnostics", "values": [true, true] },
+            { "label": "Dedicated wellness advisor", "values": [false, true] },
+            { "label": "Health coaching", "values": [false, true] },
+            { "label": "Concierge medical care on demand", "values": [false, true] }
+          ]
+        },
+        {
+          "id": "membership-faq",
+          "type": "faq",
+          "eyebrow": "Questions",
+          "headline": "About *membership.*",
+          "items": [
+            {
+              "q": "How do I start?",
+              "a": "Choose a plan, create your account and schedule your first blood draw. It takes under five minutes."
+            },
+            {
+              "q": "Do I need a prescription for treatment?",
+              "a": "Yes, for prescription treatments. A licensed provider reviews your bloodwork and health history and decides whether treatment is appropriate. Not everyone qualifies."
+            },
+            {
+              "q": "Where is OTMENS available?",
+              "a": "In all 50 states."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

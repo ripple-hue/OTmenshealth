@@ -302,20 +302,36 @@ function drawChat() {
 $('log').onclick = (e) => { const b = e.target.closest('.sugg button'); if (b) sendMsg(b.textContent); };
 setInterval(() => { const t = $('tick'); if (t && waiting) t.textContent = `Working on it · ${Math.round((Date.now() - started) / 1000)}s`; }, 1000);
 
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// The server answers at once and works in the background; keep checking until it is done.
+async function waitForAgent() {
+  waiting = true; draw();
+  let misses = 0;
+  while (S.busy && misses < 20) {
+    await pause(1500);
+    try { await call('state'); misses = 0; } catch { misses++; }
+  }
+  waiting = false;
+  if (misses >= 20) toast('Lost the connection. Reload the page to see the result.');
+}
+
 async function sendMsg(text, rejected) {
   if (waiting || !text.trim()) return;
   waiting = true; started = Date.now();
+  const before = S.chat.length;
   S.chat.push({ role: 'user', text, rejected: !!rejected });
   draw();
   try {
-    const had = !!S.draft;
-    await call('chat', { message: text, rejected: !!rejected });
-    const last = S.chat[S.chat.length - 1];
-    if (last?.drafted) { view = had || rejected ? view === 'live' ? 'split' : view : 'split'; peek = null; }
+    const res = await call('chat', { message: text, rejected: !!rejected });
+    if (!res?.error) await waitForAgent();
   } catch (e) {
-    toast('The connection dropped. Check the chat, then try again.');
+    await pause(1500);
     await call('state').catch(() => {});
+    if (S.busy) await waitForAgent(); else toast('That didn’t send. Check your connection and try again.');
   }
+  const last = S.chat[S.chat.length - 1];
+  if (S.chat.length > before && last?.drafted) { if (view === 'live') view = 'split'; peek = null; }
   waiting = false;
   draw();
 }
@@ -356,7 +372,7 @@ $('bLearn').onclick = () => { drawer = drawer === 'learned' ? null : 'learned'; 
 $('dClose').onclick = () => { drawer = null; draw(); };
 document.onkeydown = (e) => { if (e.key === 'Escape' && drawer) { drawer = null; draw(); } };
 
-call('state').then(() => { if (S.draft) view = 'split'; draw(); });
+call('state').then(async () => { if (S.draft) view = 'split'; draw(); if (S.busy) { started = Date.now(); await waitForAgent(); draw(); } });
 </script>
 </body>
 </html>

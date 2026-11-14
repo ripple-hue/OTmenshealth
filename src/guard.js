@@ -71,7 +71,7 @@ const where = (trail) => {
   return trail[0] === 'pages' && i > 0 ? `${trail[1]} page` : trail[0] === 'global' ? 'site-wide ' + trail[1] : trail.join('.');
 };
 
-const numbers = (content) => new Set(texts(content).flatMap((t) => t.text.match(/\$\d[\d,]*(\.\d+)?|\d+\s?%/g) || []));
+const numbers = (content) => new Set(texts(content).flatMap((t) => (t.text.match(/\$\d[\d,]*(\.\d+)?|\d+\s?%/g) || []).map((n) => n.replace(/,$/, ''))));
 
 function validate(content, prev) {
   const errors = [];

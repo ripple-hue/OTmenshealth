@@ -60,59 +60,61 @@ function publicState() {
 
 const note = (s, text) => s.chat.push({ role: 'system', text, at: new Date().toISOString() });
 
+async function runAgent(message, rejected) {
+  let s = store.state();
+  const current = store.version(s.head);
+  let out;
+  try {
+    out = await agent.run({ message, rejected, draft: s.draft, current, memory: s.memory, version: s.head, history: s.chat.slice(0, -1) });
+  } catch (e) {
+    if (!e.userFacing) console.error(e);
+    s = store.state();
+    s.chat.push({ role: 'agent', text: e.userFacing ? e.message : 'Something went wrong on my side and no change was made. Try that again.', error: true, at: new Date().toISOString() });
+    return store.save(s);
+  }
+
+  s = store.state();
+  const learned = (out.lessons_learned || []).filter((r) => typeof r === 'string' && r.trim()).map((rule) => ({ id: crypto.randomUUID(), rule: rule.trim(), at: new Date().toISOString(), from: message.slice(0, 140) }));
+  s.memory.push(...learned);
+  let drafted = false;
+  if (out.site && diff(current, out.site).any) {
+    const reset = (out.operations || []).some((o) => o.op === 'reset_draft');
+    s.draft = {
+      content: out.site,
+      summary: out.summary || s.draft?.summary || 'Untitled change',
+      changes: [...(reset || !s.draft ? [] : s.draft.changes || []), ...(out.changes || [])],
+      report: out.report,
+      needs: out.needs_from_jacob || [],
+      declined: out.declined || [],
+    };
+    drafted = true;
+  } else if (out.site && s.draft) {
+    s.draft = null; // the agent reverted everything
+  }
+  s.chat.push({
+    role: 'agent', text: out.message, at: new Date().toISOString(),
+    drafted, summary: drafted ? s.draft.summary : null, changes: out.changes || [],
+    learned: learned.map((l) => l.rule), applied: out.lessons_applied || [],
+    needs: out.needs_from_jacob || [], declined: out.declined || [], failed: !!out.failed,
+  });
+  store.save(s);
+}
+
 const api = {
-  async chat(body) {
+  // Starts the agent and returns at once. The browser polls /api/state until `busy` clears,
+  // so a slow answer never depends on one long-held connection.
+  chat(body) {
     const message = String(body.message || '').trim().slice(0, 4000);
     if (!message) return { error: 'Type a message first.' };
     if (busy) return { error: 'The agent is still working on the last request.' };
     busy = true;
-    try {
-      let s = store.state();
-      const current = store.version(s.head);
-      const history = s.chat;
-      s.chat.push({ role: 'user', text: message, rejected: !!body.rejected, at: new Date().toISOString() });
-      store.save(s);
-
-      let out;
-      try {
-        out = await agent.run({ message, rejected: !!body.rejected, draft: s.draft, current, memory: s.memory, version: s.head, history: history.slice(0, -1) });
-      } catch (e) {
-        if (!e.userFacing) console.error(e);
-        s = store.state();
-        s.chat.push({ role: 'agent', text: e.userFacing ? e.message : 'Something went wrong on my side and no change was made. Try that again.', error: true, at: new Date().toISOString() });
-        store.save(s);
-        return {};
-      }
-
-      s = store.state();
-      const learned = (out.lessons_learned || []).filter((r) => typeof r === 'string' && r.trim()).map((rule) => ({ id: crypto.randomUUID(), rule: rule.trim(), at: new Date().toISOString(), from: message.slice(0, 140) }));
-      s.memory.push(...learned);
-      let drafted = false;
-      if (out.site && diff(current, out.site).any) {
-        const reset = (out.operations || []).some((o) => o.op === 'reset_draft');
-        s.draft = {
-          content: out.site,
-          summary: out.summary || s.draft?.summary || 'Untitled change',
-          changes: [...(reset || !s.draft ? [] : s.draft.changes || []), ...(out.changes || [])],
-          report: out.report,
-          needs: out.needs_from_jacob || [],
-          declined: out.declined || [],
-        };
-        drafted = true;
-      } else if (out.site && s.draft) {
-        s.draft = null; // the agent reverted everything
-      }
-      s.chat.push({
-        role: 'agent', text: out.message, at: new Date().toISOString(),
-        drafted, summary: drafted ? s.draft.summary : null, changes: out.changes || [],
-        learned: learned.map((l) => l.rule), applied: out.lessons_applied || [],
-        needs: out.needs_from_jacob || [], declined: out.declined || [], failed: !!out.failed,
-      });
-      store.save(s);
-      return {};
-    } finally {
-      busy = false;
-    }
+    const s = store.state();
+    s.chat.push({ role: 'user', text: message, rejected: !!body.rejected, at: new Date().toISOString() });
+    store.save(s);
+    runAgent(message, !!body.rejected)
+      .catch((e) => console.error(e))
+      .finally(() => { busy = false; });
+    return {};
   },
 
   approve() {

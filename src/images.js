@@ -97,12 +97,28 @@ async function generate({ prompt, aspect, references = [] }) {
   throw new Error('The image took too long to generate.');
 }
 
+// Generated images arrive as large PNGs (about 5 MB). Pages need them small: resize to at most
+// 2400px on the long side and save as WebP. If sharp can't load, keep the original rather than fail.
+let sharp = null;
+try { sharp = require('sharp'); } catch (e) { console.error('sharp unavailable, saving generated images unconverted:', e.message); }
+const MAX_EDGE = 2400;
+
 async function download(url) {
   const res = await fetch(url, { signal: AbortSignal.timeout(60000) });
   if (!res.ok) throw new Error(`Could not download the image (${res.status}).`);
   const type = res.headers.get('content-type') || '';
-  const ext = /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : 'jpg';
-  return { buffer: Buffer.from(await res.arrayBuffer()), ext };
+  const original = { buffer: Buffer.from(await res.arrayBuffer()), ext: /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : 'jpg' };
+  if (!sharp) return original;
+  try {
+    const buffer = await sharp(original.buffer)
+      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+    return { buffer, ext: 'webp' };
+  } catch (e) {
+    console.error('Could not convert a generated image, saving the original:', e.message);
+    return original;
+  }
 }
 
 // What every image must meet before it can appear on the site, judged by a model looking at it.

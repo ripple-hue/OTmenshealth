@@ -59,7 +59,7 @@ README.md            Short run guide (partly out of date on the section library)
 docs/                These documents.
 ```
 
-Dependencies: Node 20 or later, one npm package (`@anthropic-ai/sdk`). No framework, no build step, no database.
+Dependencies: Node 20 or later, two npm packages: `@anthropic-ai/sdk`, and `sharp` (converts generated images to WebP; it ships prebuilt native binaries). No framework, no build step, no database.
 
 ## How it works
 
@@ -221,7 +221,7 @@ Artefacts from these tests (screenshots, a 2 min 16 s screen recording) were del
 
 1. **Fixed and verified (15 November 2026): Studio data loss on redeploy.** Cause: `DATA_DIR=/data` was set, but the project had no volume, so `/data` was inside the container and wiped on every deploy. A 500 MB volume is now attached to the Studio at `/data`. Verified: version 2 was live, the Studio was redeployed, and it came back with version 2 still live and the campaign intact.
 2. **Fixed and verified (15 November 2026): public website following the Studio.** Cause: `STUDIO_URL` was never set on the website service, so the public site always served the bundled `content/site.json`. Verified: pushing version 2 put the Black Friday campaign on the public URL, including the new `/black-friday` page.
-3. **Image generation: built and tested image by image, not yet tested in a full agent request.** Uses the Higgsfield API (a separate prepaid dollar balance, not the higgsfield.ai website plan; $5 added 15 November 2026, five test images used). The key is the Studio variable `HF_API_KEY` (one combined `id:secret` value). **Generated images are 5 MB PNGs**, far too heavy for web pages; converting them to WebP needs a new dependency (`sharp`), not yet added (the owner's approval is pending). The image check is a model review, not a guarantee, and it rejects often (3 of 4 Flare images), which spends the per-request budget. Mood scenes without a product have not passed yet. Generated images are never deleted except by "Reset the demo". If `HF_IMAGE_MODEL` is set back to SOUL (`higgsfield-ai/soul/standard`), it only accepts `720p`/`1080p`, despite its published spec.
+3. **Image generation: built and tested image by image, not yet tested in a full agent request.** Uses the Higgsfield API (a separate prepaid dollar balance, not the higgsfield.ai website plan; $5 added 15 November 2026, five test images used). The key is the Studio variable `HF_API_KEY` (one combined `id:secret` value). Higgsfield returns 5 MB PNGs; `src/images.js` converts each to WebP (quality 82, at most 2400 px on the long side) with `sharp` before saving: the test image went from 5.2 MB to 186 KB with no visible loss. If `sharp` fails to load, the original is saved and an error is logged. The image check is a model review, not a guarantee, and it rejects often (3 of 4 Flare images), which spends the per-request budget. Mood scenes without a product have not passed yet. Generated images are never deleted except by "Reset the demo". If `HF_IMAGE_MODEL` is set back to SOUL (`higgsfield-ai/soul/standard`), it only accepts `720p`/`1080p`, despite its published spec.
 4. **The bold redesign replaced Jacob's tagline** ("Own Your Health."). Undecided whether to lock it.
 5. **Health-claim checking is a phrase list.** It catches obvious wording but misses rephrasing (for example "drop two sizes"). It is not a legal review.
 6. **Authentication is minimal.** One shared passcode; the cookie is a hash of the passcode (no expiry rotation, no logout); any signed-in user can `reset` everything; no rate limiting.

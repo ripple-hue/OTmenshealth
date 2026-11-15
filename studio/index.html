@@ -122,6 +122,7 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .card .when { color: var(--mute); font-size: 12px; margin-top: 2px; }
 .card .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .card .row button { font-size: 12.5px; padding: 5px 12px; border-radius: 99px; border: 1px solid var(--rule); }
+.card .row button:disabled { opacity: .4; cursor: default; }
 .card .row button:hover { border-color: var(--honey); }
 .empty { color: var(--mute); padding: 20px 0; }
 .link { color: var(--mute); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
@@ -209,6 +210,9 @@ function draw() {
   $('hint').textContent = S.hasKey ? 'Nothing goes live until you approve it and push it.' : 'The agent has no API key yet, so it cannot answer.';
 }
 
+// While the agent is working it builds on the current draft and version, so actions that change them wait.
+const busyLock = () => (waiting || S.busy ? 'disabled title="Wait until the agent has finished"' : '');
+
 function drawStatus() {
   const el = $('status');
   if (peek) {
@@ -224,11 +228,11 @@ function drawStatus() {
       ${blocked ? '<span class="warn">Needs your input before it can be approved</span>' : ''}</span>
       <span class="spacer"></span>
       ${rejecting ? `<form class="rejbox" id="rej"><input id="why" placeholder="What’s wrong with it? The agent will learn from this." autocomplete="off"><button class="btn gold">Send back</button><button type="button" class="btn line" data-a="cancelrej">Cancel</button></form>`
-        : `<button class="btn line" data-a="discard">Discard</button><button class="btn line" data-a="reject">Reject</button><button class="btn gold" data-a="approve" ${blocked || waiting ? 'disabled' : ''}>Approve</button>`}`;
+        : `<button class="btn line" data-a="discard" ${busyLock()}>Discard</button><button class="btn line" data-a="reject" ${busyLock()}>Reject</button><button class="btn gold" data-a="approve" ${blocked ? 'disabled' : busyLock()}>Approve</button>`}`;
     if (rejecting) { $('why').focus(); $('rej').onsubmit = (e) => { e.preventDefault(); const v = $('why').value.trim(); if (v) { rejecting = false; sendMsg(v, true); } }; }
   } else if (S.head !== S.live) {
     el.className = 'status ready';
-    el.innerHTML = `<span class="dot"></span><span><strong>Version ${S.head} is approved</strong> <span class="sub">but not live. The live site is still version ${S.live}.</span></span><span class="spacer"></span><button class="btn gold" data-a="push">Push to live site</button>`;
+    el.innerHTML = `<span class="dot"></span><span><strong>Version ${S.head} is approved</strong> <span class="sub">but not live. The live site is still version ${S.live}.</span></span><span class="spacer"></span><button class="btn gold" data-a="push" ${busyLock()}>Push to live site</button>`;
   } else {
     el.className = 'status';
     el.innerHTML = `<span class="dot" style="background:#9BC49B"></span><span><strong>Version ${S.live} is live.</strong> <span class="sub">Ask for a change to start a draft.</span></span>`;
@@ -395,7 +399,7 @@ function drawDrawer() {
   if (drawer === 'versions') {
     $('dTitle').innerHTML = 'Every <em>version.</em>';
     $('dBody').innerHTML = S.versions.map((v) => `<div class="card${v.n === S.live ? ' live' : ''}"><h3>Version ${v.n}${v.n === S.live ? '<span class="tag live">Live</span>' : ''}${v.n === S.head && v.n !== S.live ? '<span class="tag">Approved, not live</span>' : ''}</h3><p>${esc(v.summary)}</p><p class="when">Saved ${when(v.createdAt)}${v.pushedAt ? ' · last pushed live ' + when(v.pushedAt) : ''}</p>
-      <div class="row"><button data-a="peek" data-n="${v.n}">View</button><button data-a="compare" data-n="${v.n}">Compare</button>${v.n !== S.live ? `<button data-a="push" data-n="${v.n}">Push to live site</button>` : ''}${v.n !== S.head ? `<button data-a="restore" data-n="${v.n}">Restore as newest</button>` : ''}</div></div>`).join('');
+      <div class="row"><button data-a="peek" data-n="${v.n}">View</button><button data-a="compare" data-n="${v.n}">Compare</button>${v.n !== S.live ? `<button data-a="push" data-n="${v.n}" ${busyLock()}>Push to live site</button>` : ''}${v.n !== S.head ? `<button data-a="restore" data-n="${v.n}" ${busyLock()}>Restore as newest</button>` : ''}</div></div>`).join('');
     $('dFoot').innerHTML = `Every approved change is kept here. <button class="link" data-a="reset">${confirmReset ? 'Click again to wipe everything and start the demo over' : 'Reset the demo'}</button>`;
   } else if (drawer === 'learned') {
     $('dTitle').innerHTML = 'What I’ve <em>learned.</em>';

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "studio": "node studio.js",
-    "test": "node test/agent-code.js"
+    "test": "node test/agent-code.js && node test/agent-loop.js"
   },
   "private": true,
   "engines": {

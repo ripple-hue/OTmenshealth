@@ -13,7 +13,7 @@ const store = require('./store');
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AGENT_EFFORT || 'medium';
 const MAX_REPAIRS = 2;
-const MAX_TURNS = 6; // model calls per request, including image rounds and repairs
+const MAX_TURNS = 8; // model calls per request, including image rounds, re-sends and repairs
 
 const file = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -261,11 +261,15 @@ async function run({ message, rejected, draft, current, memory, version, history
   const made = [];
   let imageCalls = 0;
   let attempt = 0;
+  let cutOffs = 0; // replies cut off at the length limit
+  let nudged = false; // asked once for missing operations
   for (let turn = 0; attempt <= MAX_REPAIRS && turn < MAX_TURNS; turn++) {
     let res;
     const request = {
       model: MODEL,
-      max_tokens: 20000, // room for custom HTML and CSS; kept under the SDK's non-streaming limit
+      // A full campaign (custom hero, landing page, HTML, CSS and JavaScript) can be very long.
+      // 20,000 was too small: a reply was cut off and its edits lost. Streamed, so a long reply can't time out.
+      max_tokens: 64000,
       output_config: { effort: EFFORT },
       system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
       tools: canMakeImages ? [TOOL, IMAGE_TOOL] : [TOOL],
@@ -276,11 +280,11 @@ async function run({ message, rejected, draft, current, memory, version, history
     try {
       try {
         // If a safety classifier declines the request, let the API retry it on a fallback model.
-        res = await client.beta.messages.create({ ...request, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' });
+        res = await client.beta.messages.stream({ ...request, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }).finalMessage();
       } catch (err) {
         if (!(err instanceof (Anthropic.default || Anthropic).BadRequestError)) throw err;
         console.error('Request with fallbacks was rejected, retrying without:', err.message);
-        res = await client.messages.create(request);
+        res = await client.messages.stream(request).finalMessage();
       }
     } catch (err) {
       const C = Anthropic.default || Anthropic;
@@ -294,7 +298,17 @@ async function run({ message, rejected, draft, current, memory, version, history
       throw e;
     }
 
+    const toolNames = res.content.filter((b) => b.type === 'tool_use').map((b) => b.name).join(',') || 'none';
+    console.log(`[agent] turn ${turn} attempt ${attempt}: stop=${res.stop_reason} output_tokens=${res.usage?.output_tokens} tools=${toolNames}`);
     if (res.stop_reason === 'refusal') return { message: 'I can’t help with that request.', ops: 0 };
+
+    // The reply was cut off at the length limit: its tool call is incomplete, so its edits can't be trusted.
+    // Ask for the same change again, more compactly, rather than showing a message with nothing behind it.
+    if (res.stop_reason === 'max_tokens') {
+      if (cutOffs++ >= 1) return { ...(out || {}), message: 'That change came out too large for me to send in one go, so I haven’t drafted it. Ask for a smaller part first (for example, the home page only) and I’ll build it up from there.', site: null, failed: true, ops: 0 };
+      messages.push({ role: 'user', content: 'Your last reply was cut off because it was too long, so none of it was applied. Call respond_to_jacob again with the complete change, more compactly: reuse library sections and brand classes where you can, keep custom CSS and JavaScript short, and don\'t repeat code across sections.' });
+      continue;
+    }
 
     // The agent asked for new images: make them, check them, and hand back the ones that passed.
     const imageCall = res.content.find((b) => b.type === 'tool_use' && b.name === IMAGE_TOOL.name);
@@ -328,9 +342,25 @@ async function run({ message, rejected, draft, current, memory, version, history
     }
 
     const input = call.input || {};
+    // Large edit lists sometimes arrive as a JSON string instead of an array. Accept either.
+    if (typeof input.operations === 'string') {
+      try { input.operations = JSON.parse(input.operations); } catch { /* handled below as unreadable */ }
+    }
+    const unreadable = input.operations != null && !Array.isArray(input.operations);
     out = out ? { ...out, ...input, changes: input.changes?.length ? input.changes : out.changes, message: out.message } : input;
     out.images = made.map((m) => m.path);
     const ops = Array.isArray(input.operations) ? input.operations : [];
+    // It described changes (or sent an edit list we couldn't read) but nothing usable arrived:
+    // ask once for the edits rather than telling Jacob a draft exists when it doesn't.
+    if (!ops.length && attempt === 0 && (unreadable || input.changes?.length) && !nudged) {
+      nudged = true;
+      out = null;
+      messages.push({ role: 'assistant', content: res.content });
+      messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: call.id, is_error: true, content: unreadable
+        ? '`operations` could not be read: it must be an array of operation objects, not a string. Call respond_to_jacob again with the full change and `operations` as an array.'
+        : 'You described changes but sent no operations, so nothing was drafted. Call respond_to_jacob again with the full change, including every operation.' }] });
+      continue;
+    }
     if (!ops.length && attempt === 0) return { ...out, site: null, ops: 0 };
 
     let errors;

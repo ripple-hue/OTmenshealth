@@ -277,6 +277,11 @@ http
         }
         const fn = api[p.slice(5)];
         if (!fn) return json(res, 404, { error: 'Unknown action.' });
+        // While the agent works it is building on the current draft and version. Changing them under it
+        // loses its work (seen 15 November: a campaign was discarded mid-run), so these actions wait.
+        if (busy && ['approve', 'discard', 'push', 'restore', 'reset'].includes(p.slice(5))) {
+          return json(res, 409, { error: 'The agent is still working on your last request. Wait for it to finish, then try again.', state: publicState() });
+        }
         const result = await fn(await readBody(req));
         return json(res, result.error ? 400 : 200, { ...result, state: publicState() });
       }

@@ -259,7 +259,7 @@ The brand was rebuilt from screenshots. Confirm these with Jacob before anything
 | Never touches checkout or medical | Delivered for the demo; untested against a real site |
 | No risky health claims | Partial (phrase list plus instructions) |
 | Looks and sounds like OTMENS | Mostly; brand from screenshots, tagline replaced in the redesign |
-| Learns from rejection, visibly | Built; broken in production by issue 1 |
+| Learns from rejection, visibly | Built; production storage fixed and verified 15 Nov. A rejection cycle has not been re-run since |
 | Campaigns touch every relevant surface | Delivered |
 | Campaigns create images | Not delivered |
 | Rarely needs correcting | Unproven |

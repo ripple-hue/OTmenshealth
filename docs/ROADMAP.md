@@ -6,7 +6,7 @@ Ordered by priority. Each task says why it matters, what done looks like, and wh
 
 ### 1. Make Studio data survive redeploys
 
-**Status (15 November 2026):** volume `studio-volume` attached to the Studio at `/data`. Remaining: the end-to-end check below.
+**Status: done and verified, 15 November 2026.** Volume `studio-volume` attached to the Studio at `/data`; version 2 survived a redeploy.
 
 - **Why.** Every push to `main` wipes versions, drafts, chat and learned rules, and resets the live site to version 1. The "it learns" claim fails in front of the client.
 - **Done when.** After a redeploy, `/api/state` shows the same versions, live version and memory as before.
@@ -14,7 +14,7 @@ Ordered by priority. Each task says why it matters, what done looks like, and wh
 
 ### 2. Verify the public site follows the Studio
 
-**Status (15 November 2026):** `STUDIO_URL` set on the website service; the website is confirmed fetching from the Studio. Remaining: push a non-1 version and see it on the public URL.
+**Status: done and verified, 15 November 2026.** `STUDIO_URL` set on the website service; pushing version 2 put the Black Friday campaign on the public URL.
 
 - **Why.** Pushing a version must change the public URL. This has only been verified locally.
 - **Done when.** Push a version with a visible change, and `https://otmenshealth-production.up.railway.app` shows it within a few seconds; push version 1 and it reverts.

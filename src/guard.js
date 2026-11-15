@@ -5,6 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { renderPage, LOCKED, sectionTypes } = require('./render');
+const code = require('./code');
 
 const IMAGES_DIR = path.join(__dirname, '..', 'public', 'img');
 const VISUALS = ['checklist', 'plan', 'trend', 'report', 'plate'];
@@ -12,7 +13,8 @@ const VISUALS = ['checklist', 'plan', 'trend', 'report', 'plate'];
 // The section library, as the agent sees it. `req` fields must be present and non-empty.
 const THEMES = ['paper', 'cream', 'champagne', 'ink'];
 const VARIANTS = { hero: ['photo', 'arch', 'statement'], steps: ['cards', 'staggered'], tracks: ['cards', 'expand'], plansTeaser: ['cards', 'tilted'], cta: ['plain', 'image'] };
-const THEMED = ['steps', 'feature', 'tracks', 'plansTeaser', 'faq', 'compare', 'cta', 'statement', 'marquee'];
+const THEMED = ['steps', 'feature', 'tracks', 'plansTeaser', 'faq', 'compare', 'cta', 'statement', 'marquee', 'custom'];
+const CODE_LIMITS = { html: 24000, css: 16000, globalCss: 20000 };
 
 // The section library, as the agent sees it. `req` fields must be present and non-empty.
 const SPEC = {
@@ -31,7 +33,19 @@ const SPEC = {
   trackList: { req: ['items'], doc: 'Editorial rows, one per treatment track. items[{anchor,code,kicker,title,body,tags[string],image,imageAlt,visual: report|plate,plateWord,rx:boolean}].' },
   plans: { req: ['headline', 'plans'], doc: 'Full pricing cards. Fields: eyebrow, headline, body, plans[{tier,name,badge,price,per,annual,annualWas,offer,tagline,groups[{label,items[{text,value}]}],cta{label,href}}], footnote.' },
   compare: { req: ['headline', 'columns', 'rows'], doc: 'Comparison table. Fields: eyebrow, headline, columns[string], rows[{label,values[true|false|string]}]. Default theme cream.' },
+  custom: {
+    req: ['html'],
+    doc: [
+      'A section you design and code yourself, for anything the library cannot do: a campaign hero, an offer layout, a new kind of band. Can go anywhere, including first on the home page in place of the hero.',
+      'Fields: html (the inner markup of the section), css (styles for this section only), theme (optional background), dark: true (dark background and light text; when it opens a page the floating nav turns dark over it), anchor (optional id for #links).',
+      'html: plain HTML and inline SVG. No <script>, <style>, <iframe>, forms, video or event handlers (onclick and so on). Links must go to a site page, a protected page or an #anchor. <img src> must be an image from the image library. Use <em> for the one italic gold accent word in a headline, not asterisks.',
+      'css: top-level declarations style the section itself; rules inside it are automatically scoped to this section, so write ".offer { ... }" not a page-wide selector. @media and @keyframes work. Colours only from the brand: var(--ink), var(--cream), var(--paper), var(--champagne), var(--honey), var(--bronze), var(--ink-soft), var(--line), var(--gold-grad), or the palette hex values and rgba() of them (rgba(0,0,0,a) is allowed for shadows). Fonts only var(--sans) and var(--serif); set font-family, font-size and font-weight separately, not the font shorthand. No @import, @font-face or outside URLs; url() only for /img/ library images.',
+      'Brand classes you can reuse inside it: wrap (centred page width), display (huge light headline), title (section headline), title-xl, eyebrow with <span class="dot"></span> inside, lede (body text), kicker (small spaced capitals), btn btn-gold (the primary gold button), btn btn-line, text-link, chips (row of pill <span>s). The page nav floats over the top 90px of the first section on a page, so a first section needs at least 150px of top padding.',
+      'It must work at 375px wide: use clamp() for big type and a @media (max-width: 900px) rule for multi-column layouts. Every visible word is checked by the same health-claim and brand-voice rules as any other section.',
+    ].join(' '),
+  },
 };
+const GLOBAL_CSS_DOC = 'Site-wide styling: global.css (set with update_global, e.g. {"op":"update_global","fields":{"css":"..."}}) is a stylesheet added to every page of the site, after the brand stylesheet. Use it to restyle the whole site, for example for a campaign: the announcement bar (.announce), the nav (.nav, .nav-dark), buttons (.btn-gold), bands and section types (.hero, .statement, .promo, .plans, .plan, .band, .theme-ink and so on). Same colour, font and URL rules as custom section CSS. It cannot touch the footer, legal text or prescription notices (.footer, .legal, .rx, .footnote, .promo-terms), and it never reaches checkout, the member portal or intake. Set it to null to remove it.';
 const THEME_DOC = `Sections that take a theme (${THEMED.join(', ')}) accept theme: ${THEMES.join(' | ')}. Paper and cream are the quiet light backgrounds, champagne is warm gold, ink is the dark one. Alternating them is how a page gets rhythm and contrast.`;
 
 const COMPLIANCE = [
@@ -55,7 +69,7 @@ const SLOP = [
 ];
 
 const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
-const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag']);
+const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag', 'css']);
 
 const images = () => fs.readdirSync(IMAGES_DIR).filter((f) => /\.(jpg|png|webp)$/.test(f)).map((f) => '/img/' + f);
 
@@ -69,7 +83,9 @@ function texts(content) {
   const out = [];
   walk(content, (v, trail) => {
     const key = [...trail].reverse().find((k) => typeof k === 'string');
-    if (typeof v === 'string' && !SKIP_KEYS.has(key)) out.push({ text: v, key, trail });
+    if (typeof v !== 'string' || SKIP_KEYS.has(key)) return;
+    // For agent-written HTML, check the words a visitor reads (and alt text), not the markup.
+    out.push({ text: key === 'html' ? code.parseHtml(v).text : v, key, trail });
   });
   return out;
 }
@@ -128,11 +144,35 @@ function validate(content, prev) {
   }
   add('Checkout, portal and medical pages untouched', p);
 
-  // 3. Links and images resolve
+  // 3. Code the agent wrote: no scripts, nothing outside the site, brand colours and fonts only
+  const k = [];
+  const customLinks = [];
+  for (const [key, page] of Object.entries(pages)) {
+    for (const sec of page.sections || []) {
+      if (sec.type !== 'custom') continue;
+      if (typeof sec.html !== 'string' || (sec.css != null && typeof sec.css !== 'string')) { k.push(`Section "${sec.id}" needs html (and css, if any) as text.`); continue; }
+      if (sec.html.length > CODE_LIMITS.html) k.push(`The HTML of section "${sec.id}" is too long (${sec.html.length} characters, limit ${CODE_LIMITS.html}).`);
+      if ((sec.css || '').length > CODE_LIMITS.css) k.push(`The CSS of section "${sec.id}" is too long (${sec.css.length} characters, limit ${CODE_LIMITS.css}).`);
+      const parsed = code.parseHtml(sec.html);
+      k.push(...parsed.problems.map((x) => `The HTML of section "${sec.id}" on the ${key} page ${x}.`));
+      if (sec.css) k.push(...code.checkCss(sec.css).map((x) => `The CSS of section "${sec.id}" on the ${key} page ${x}.`));
+      if (!parsed.text) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
+      customLinks.push(...parsed.hrefs.map((h) => ['href', h]), ...parsed.images.map((i) => ['image', i]));
+    }
+  }
+  if (g.css != null) {
+    if (typeof g.css !== 'string') k.push('The site-wide CSS must be text.');
+    else {
+      if (g.css.length > CODE_LIMITS.globalCss) k.push(`The site-wide CSS is too long (${g.css.length} characters, limit ${CODE_LIMITS.globalCss}).`);
+      k.push(...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
+    }
+  }
+  add('Code is safe and on brand', k);
+
+  // 4. Links and images resolve
   const l = [];
   const okImages = images();
-  walk(content, (v, trail) => {
-    const key = trail[trail.length - 1];
+  const checkLink = (key, v) => {
     if (key === 'href') {
       const base = String(v).split(/[?#]/)[0];
       const ok = String(v).startsWith('#') || paths.has(base || '/') || Object.keys(LOCKED).includes(base);
@@ -140,10 +180,12 @@ function validate(content, prev) {
     }
     if (key === 'image' && !okImages.includes(v)) l.push(`Image "${v}" is not in the image library.`);
     if (key === 'visual' && !VISUALS.includes(v)) l.push(`Visual "${v}" does not exist.`);
-  });
+  };
+  walk(content, (v, trail) => checkLink(trail[trail.length - 1], v));
+  customLinks.forEach(([key, v]) => checkLink(key, v));
   add('Every link and image resolves', l);
 
-  // 4. Health-claim compliance
+  // 5. Health-claim compliance (including the visible words of custom sections)
   const c = [];
   const b = [];
   for (const t of texts(content)) {
@@ -162,7 +204,7 @@ function validate(content, prev) {
   add('Health-claim rules', c);
   add('Brand voice and layout limits', b);
 
-  // 5. The site still renders
+  // 6. The site still renders
   const r = [];
   if (!s.length) {
     for (const key of Object.keys(pages)) {
@@ -201,4 +243,4 @@ function diff(a, b) {
   return out;
 }
 
-module.exports = { validate, diff, SPEC, THEME_DOC, images, LOCKED };
+module.exports = { validate, diff, SPEC, THEME_DOC, GLOBAL_CSS_DOC, images, LOCKED };

@@ -47,6 +47,8 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .msg.agent.err { border-color: rgba(216,188,126,.5); }
 .msg.system { align-self: center; font-size: 12px; color: var(--mute); text-align: center; }
 .msg p { margin: 0; }
+.msg .skills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.msg .skills span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--honey); border: 1px solid rgba(216,188,126,.4); border-radius: 99px; padding: 3px 9px; }
 .label { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--honey); margin: 14px 0 6px; }
 .changes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .changes li { padding-left: 12px; border-left: 1px solid var(--honey); }
@@ -277,6 +279,7 @@ function fit() {
 }
 new ResizeObserver(fit).observe($('frames'));
 
+const SKILL_NAMES = { copywriting: 'Copy', design: 'Design', 'flow-building': 'Flow', development: 'Code' };
 function drawChat() {
   const log = $('log');
   const stick = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
@@ -288,7 +291,7 @@ function drawChat() {
   for (const m of S.chat) {
     if (m.role === 'user') h += `<div class="msg user${m.rejected ? ' rej' : ''}">${esc(m.text)}</div>`;
     else if (m.role === 'system') h += `<div class="msg system">${esc(m.text)}</div>`;
-    else h += `<div class="msg agent${m.error || m.failed ? ' err' : ''}"><p>${esc(m.text)}</p>
+    else h += `<div class="msg agent${m.error || m.failed ? ' err' : ''}">${m.skills?.length ? `<p class="skills">${m.skills.map((k) => `<span>${esc(SKILL_NAMES[k] || k)}</span>`).join('')}</p>` : ''}<p>${esc(m.text)}</p>
       ${m.learned?.length ? `<div class="learned"><p class="label">Learned</p>${m.learned.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}
       ${m.changes?.length && m.drafted ? `<p class="label">What changed</p><ul class="changes">${m.changes.map((c) => `<li>${esc(c.what)}<span>${esc(c.why)}</span></li>`).join('')}</ul>` : ''}
       ${m.applied?.length ? `<p class="label">Applied from what I’ve learned</p><div class="plain">${m.applied.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}

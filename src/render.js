@@ -1,6 +1,9 @@
 'use strict';
 // Section library. Every page is a list of sections from content/site.json,
 // and each section type below is the only way content reaches the page.
+// `custom` sections and `global.css` carry HTML and CSS the agent wrote; src/code.js sanitises them.
+
+const code = require('./code');
 
 const esc = (s) =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -359,6 +362,16 @@ const sections = {
     </section>`,
 };
 
+// A section the agent designed itself: its own HTML (no scripts) and CSS scoped to this section.
+sections.custom = (s) => {
+  const css = code.scopeCss(s.id, s.css);
+  return `
+    <section class="custom${s.theme ? theme(s) : ''}${s.dark ? ' custom-dark' : ''}" data-section="${esc(s.id)}"${s.anchor ? ` id="${esc(s.anchor)}"` : ''}>
+      ${css ? `<style>${css}</style>` : ''}
+      ${code.sanitizeHtml(s.html, (h) => (h.startsWith('/') && BASE && !isAsset(h) ? BASE + h : h))}
+    </section>`;
+};
+
 const heroPhoto = sections.hero;
 
 const heroCopy = (s) => `
@@ -430,7 +443,9 @@ function renderPage(site, key, opts = {}) {
 function renderPageInner(site, key, opts) {
   const page = site.pages[key];
   const g = site.global;
-  const overHero = page.sections[0]?.type === 'hero';
+  const first = page.sections[0];
+  const overHero = first?.type === 'hero' || (first?.type === 'custom' && !!first.dark);
+  const siteCss = g.css ? code.cleanGlobalCss(g.css) : '';
   const body = page.sections
     .map((s) => {
       const fn = sections[s.type];
@@ -447,6 +462,7 @@ function renderPageInner(site, key, opts) {
 <meta name="description" content="${esc(page.description)}">
 <link rel="preload" href="/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
+${siteCss ? `<style id="site-css">${siteCss}</style>` : ''}
 </head>
 <body class="${overHero ? 'has-hero' : ''}">
 ${header(g, overHero)}

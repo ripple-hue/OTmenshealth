@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
-const { validate, SPEC, THEME_DOC, images, LOCKED } = require('./guard');
+const { validate, SPEC, THEME_DOC, GLOBAL_CSS_DOC, images, LOCKED } = require('./guard');
 
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AGENT_EFFORT || 'medium';
@@ -23,10 +23,20 @@ const IMAGE_NOTES = {
   '/img/sexual-health.jpg': 'matte black bottle with tablets on basalt, taupe wall',
 };
 
+// The agent's skills, in the order they are given to it. Each is a separate file in agent/skills/
+// so it can be improved on its own: copy problems go in copywriting.md, layout problems in design.md, and so on.
+const SKILLS = ['copywriting', 'design', 'flow-building', 'development'];
+const stripFrontmatter = (s) => s.replace(/^---[\s\S]*?---\n/, '');
+
 function systemPrompt() {
   const library = Object.entries(SPEC).map(([type, s]) => `- ${type}: ${s.doc} Required: ${s.req.join(', ')}.`).join('\n');
   const imgs = images().map((i) => `- ${i}${IMAGE_NOTES[i] ? ': ' + IMAGE_NOTES[i] : ''}`).join('\n');
-  return `${file('agent', 'SKILL.md').replace(/^---[\s\S]*?---\n/, '')}
+  const skills = SKILLS.map((name) => stripFrontmatter(file('agent', 'skills', `${name}.md`))).join('\n\n---\n\n');
+  return `${stripFrontmatter(file('agent', 'SKILL.md'))}
+
+---
+
+${skills}
 
 ---
 
@@ -38,12 +48,16 @@ ${file('brand', 'brand-guide.md')}
 
 Jacob talks to you in a chat next to a preview of his site. The brand guide is above. His taste memory and the current site arrive with each message.
 
-The site is a JSON document: \`global\` (announcement bar, nav, navCta, footer) and \`pages\`, each a list of sections. Every section has an \`id\`, a \`type\` from the library below, and that type's fields. You cannot write HTML, CSS or code, and you cannot change colours or fonts. You design by choosing, ordering and writing sections.
+The site is a JSON document: \`global\` (announcement bar, nav, navCta, footer, and an optional site-wide \`css\`) and \`pages\`, each a list of sections. Every section has an \`id\`, a \`type\` from the library below, and that type's fields.
+
+You design in two ways. Use the library sections where they fit: they are already designed and tested. Where they don't, write code: a \`custom\` section with your own HTML and CSS, and site-wide CSS that restyles any part of the site. You can replace the home hero with a custom one, restyle the nav, announcement bar, buttons and every section type, and build layouts the library does not have. You cannot write JavaScript or server code, load anything from outside the site, use colours or fonts outside the brand, or change the footer, legal text, prescription notices, checkout, the member portal or the medical intake. Code checks all of this.
 
 ## Section library
 ${library}
 
 ${THEME_DOC}
+
+${GLOBAL_CSS_DOC}
 
 Field rules: \`href\` must be an existing page path (optionally with #anchor), a #anchor, or one of ${Object.keys(LOCKED).join(', ')} (link only). \`image\` must come from the image library. Give every new section a unique, descriptive \`id\`.
 
@@ -71,13 +85,14 @@ Always answer by calling \`respond_to_jacob\` exactly once. Never answer in plai
 - \`changes\`: each visible change this turn, as {what, why}. Plain words. "why" is the marketing or brand reason.
 - \`lessons_learned\`: only when Jacob has just told you a preference, especially when he rejects a draft. Each is one specific, reusable rule in the imperative, about his taste, that would change a future draft. Not a note about this one change.
 - \`lessons_applied\`: taste-memory rules you actively followed this turn, quoted as saved.
+- \`skills_used\`: which of your four skills this turn's changes drew on: copywriting, design, flow-building, development.
 - \`needs_from_jacob\`: at most three things you need him to confirm or supply, one short sentence each. \`declined\`: anything you refused and why.
 
 Prefer drafting to asking. Only hold back a draft when you truly cannot tell what he wants.
 
 When Jacob rejects a draft: say in one sentence what you understood was wrong, save the lesson, and produce a new draft that fixes it. Do not defend the old one.
 
-After you respond, your draft is checked by code for health claims, generic phrases, broken links and whether every page still renders. If a check fails you get the errors back and must fix them with another \`respond_to_jacob\` call that sends only the corrective operations.`;
+After you respond, your draft is checked by code for unsafe or off-brand code, health claims, generic phrases, broken links and whether every page still renders. If a check fails you get the errors back and must fix them with another \`respond_to_jacob\` call that sends only the corrective operations.`;
 }
 
 const TOOL = {
@@ -92,6 +107,7 @@ const TOOL = {
       changes: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, why: { type: 'string' } }, required: ['what', 'why'] } },
       lessons_learned: { type: 'array', items: { type: 'string' } },
       lessons_applied: { type: 'array', items: { type: 'string' } },
+      skills_used: { type: 'array', items: { type: 'string', enum: ['copywriting', 'design', 'flow-building', 'development'] } },
       needs_from_jacob: { type: 'array', items: { type: 'string' } },
       declined: { type: 'array', items: { type: 'string' } },
     },
@@ -210,7 +226,7 @@ async function run({ message, rejected, draft, current, memory, version, history
     let res;
     const request = {
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: 20000, // room for custom HTML and CSS; kept under the SDK's non-streaming limit
       output_config: { effort: EFFORT },
       system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
       tools: [TOOL],
@@ -277,4 +293,4 @@ async function run({ message, rejected, draft, current, memory, version, history
   return { ...out, message: 'I couldn’t get that change past the brand and compliance checks, so I haven’t drafted it. Tell me what matters most about it and I’ll take another run.', site: null, report, failed: true, ops: 0 };
 }
 
-module.exports = { run, applyOps, systemPrompt, MODEL };
+module.exports = { run, applyOps, systemPrompt, MODEL, SKILLS };

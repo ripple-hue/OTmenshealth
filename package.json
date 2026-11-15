@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "studio": "node studio.js"
+    "studio": "node studio.js",
+    "test": "node test/agent-code.js"
   },
   "private": true,
   "engines": {

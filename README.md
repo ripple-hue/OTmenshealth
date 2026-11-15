@@ -1,5 +1,7 @@
 # OTMENS site agent
 
+Full context for anyone (or any agent) picking this up: start with `AGENTS.md`, then `docs/CONTEXT.md`, `docs/CURRENT_STATE.md`, `docs/ROADMAP.md` and `docs/DECISIONS.md`.
+
 Two apps in one repo.
 
 **The public website** (`node server.js`): three pages, Home, Treatments and Membership.
@@ -28,14 +30,14 @@ Website service: `STUDIO_URL`, the address of the Studio. The website then shows
 
 ## How it stays safe
 
-- The agent edits a JSON document through a fixed section library (`src/render.js`). It cannot write HTML, CSS or code.
-- `src/guard.js` checks every draft in code: section library only, protected areas untouched, every link and image resolves, health-claim rules, brand voice limits, every page renders. A failing draft is sent back to the agent and never reaches Jacob as approvable.
+- The agent edits a JSON document through a section library (`src/render.js`, described to the agent by `SPEC` in `src/guard.js`): 15 designed section types with layout variants and four background themes, plus `custom` sections where it writes its own HTML and CSS, and a site-wide stylesheet. It cannot write JavaScript or server code, load anything from outside the site, or use colours and fonts outside the brand.
+- `src/code.js` sanitises the agent's HTML and CSS, and `src/guard.js` checks every draft in code: section library and code rules, protected areas untouched, every link and image resolves, health-claim rules, brand voice limits, every page renders. A failing draft is sent back to the agent and never reaches Jacob as approvable.
 - Only the Approve and Push buttons change what is stored or live. The agent has no access to either.
 - `/checkout`, `/portal` and `/intake` are placeholders the agent cannot create, edit or remove.
 
 ## Where things live
 
-- `agent/SKILL.md` and `brand/brand-guide.md`: the agent's instructions and the OTMENS brand guide.
+- `agent/SKILL.md`: the agent's core instructions. `agent/skills/`: its four skills (copywriting, design, flow building, development). `brand/brand-guide.md`: the OTMENS brand guide.
 - `src/agent.js`: the Claude call, the edit operations and the repair loop.
 - `src/store.js`: versions, draft, chat and taste memory.
 - `studio/index.html`: the Studio screen.

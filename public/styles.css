@@ -453,5 +453,12 @@ ul, ol { list-style: none; }
 }
 @media (prefers-reduced-motion: reduce) { .marquee-track, .hero-art .keytag { animation: none; } }
 
+/* custom: sections the agent designs with its own HTML and CSS. These defaults keep them on brand. */
+.custom { position: relative; overflow: hidden; }
+.custom-dark { background: var(--ink); color: var(--cream); --ink-soft: rgba(247, 241, 230, .74); --line: rgba(247, 241, 230, .16); }
+.custom em { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -.01em; }
+.custom-dark .eyebrow, .custom-dark .display em, .custom-dark .title em { color: var(--champagne); }
+.custom img { max-width: 100%; }
+
 .closing.theme-champagne { background: radial-gradient(120% 140% at 50% 0%, #F3E8CB 0%, var(--cream) 55%, var(--paper) 100%); }
 .closing-image { padding-top: clamp(24px, 4vw, 56px); }

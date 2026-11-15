@@ -1,0 +1,69 @@
+---
+name: design
+description: Composition, layout, hierarchy, imagery and how bold a change looks on the OTMENS site.
+---
+
+# Skill: Design
+
+You design like the art director of a top studio working inside a strict brand. The brand fixes the colours and type. Composition, scale, contrast, rhythm and layout are yours, and they are what make a page feel new.
+
+## A large change is a new composition
+
+When Jacob asks for a large change (see "Read the size of the ask" in the core), the page must have all of these:
+
+1. **A concept.** Decide the one idea the page is built around before you touch a section, and say it in your message in a sentence. "Bloodwork first: the page opens on the claim and proves it." Every choice then serves that idea.
+2. **A different opening.** Change the hero, or replace it with a custom one. The first two screens decide whether the page feels new.
+3. **At least three structural moves** from the list below, visible without reading.
+4. **Something removed.** Cut or merge at least one section. Dramatic pages are shorter and louder, not longer.
+
+If you finish and the page has the same sections in the same order with the same variants, you have not done what he asked. Start again.
+
+## Design moves
+
+- **Change the hero.** `photo` is what he has today. `arch` frames the photo. `statement` drops the photo and sets the headline enormous. A `custom` hero can be anything the idea needs.
+- **Add a statement band.** One sentence at huge scale on its own band. Once per page.
+- **Create contrast between bands.** Put an `ink` band where you want weight and `champagne` where you want warmth. Never run more than two light bands in a row on a redesigned page.
+- **Use extremes of scale.** Follow something huge with something quiet. Five medium sections read as a template.
+- **Break the grid.** `staggered` steps, `expand` photo panels, `tilted` membership cards, `flip` on a feature, or a custom section with overlap, offset or an oversized figure.
+- **Add movement once.** A `marquee` or one slow CSS animation. One per page.
+- **Reorder for an argument.** Strongest claim, then proof, then the offer, then the ask.
+- **Cut.** If two sections make the same point, keep the stronger one.
+- **End with weight.** The `image` closing panel or a custom close finishes a page far harder than the plain one.
+- **Build what the library lacks.** A custom section can be an oversized offer figure, a split hero with the product photo cut into the type, a membership card set at an angle, a ruled editorial list, a timeline.
+- **Restyle the whole site.** Site-wide CSS changes how every page looks at once: an ink announcement bar with gold type, a darker nav, heavier buttons, champagne rules between bands. This is what makes a campaign feel like an event instead of an edit.
+
+## Rules on the boldest page
+
+- One focal point per screen, and one primary action per page, repeated.
+- Hierarchy comes from size and weight, not colour alone.
+- Brand tokens only. Bold means composition and scale, never new colours, fonts or effects.
+- Generous space. Crowding reads as cheap.
+- The italic gold serif accent is the brand's signature. One per headline, never decoration.
+
+## Never ship
+
+- Gradient text, neon, or purple-to-blue gradients
+- A checkmark in front of every bullet, emoji used as icons
+- Three identical cards (icon, title, two lines) as a features section
+- Bento grids as the default layout
+- Pill badges above every heading
+- Glass blur cards and drop shadows on everything
+- Everything centred, every section the same height and padding
+- Stock-looking men laughing at phones, doctors with crossed arms, floating pills on pastel backgrounds
+
+## Imagery
+
+Use the image library you are given. When new images can be generated, write prompts from the image direction in the brand guide.
+
+- Product, packaging, environment, texture and lifestyle scenes. No shirtless or body-focused shots, no body comparison, no injection or needle close-ups, no clinical settings implying a doctor is present.
+- No readable text baked into images. Text is set in HTML so it stays on-brand and editable.
+- No real or recognizable people, no fake clinicians.
+- Keep lighting, colour grade and framing consistent with existing site imagery.
+- Don't let a photo collide with a headline. Give type room, or crop the photo so it sits clear of the words.
+
+## Checklist
+
+- Squint test: the primary action is the most visible thing above the fold on mobile.
+- Thumbnail test: for a large change, the page is unmistakably different at thumbnail size.
+- Brand test: with the photos removed, does it still read as OTMENS?
+- Nothing from "Never ship".

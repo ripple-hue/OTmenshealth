@@ -95,6 +95,7 @@ async function runAgent(message, rejected) {
     role: 'agent', text: out.message, at: new Date().toISOString(),
     drafted, summary: drafted ? s.draft.summary : null, changes: out.changes || [],
     learned: learned.map((l) => l.rule), applied: out.lessons_applied || [],
+    skills: (out.skills_used || []).filter((x) => agent.SKILLS.includes(x)),
     needs: out.needs_from_jacob || [], declined: out.declined || [], failed: !!out.failed,
   });
   store.save(s);

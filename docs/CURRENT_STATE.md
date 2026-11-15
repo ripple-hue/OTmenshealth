@@ -1,12 +1,14 @@
 # Current state
 
-Snapshot as of 15 November 2026. Based on commit `ce90c06` on `main`, plus uncommitted work done the same day in a local copy that is not a git checkout: the Railway volume and `STUDIO_URL` fixes, the agent writing its own HTML and CSS, and the agent's four skills. That work is **not deployed** until it is committed to `main` (see "Where everything lives"). Read `CONTEXT.md` first for what we are building. This file says what exists, how it works, what has been tested, and what is broken or missing.
+Snapshot as of 15 November 2026, at commit `fd47950` on `main`, deployed to both Railway services the same day. Read `CONTEXT.md` first for what we are building. This file says what exists, how it works, what has been tested, and what is broken or missing.
 
-## Changed on 15 November 2026 (not yet deployed)
+## Changed on 15 November 2026 (deployed in `fd47950`)
+
+- **Railway fixed.** The Studio has a volume at `/data` (its log shows "Mounting volume" on start), and the website has `STUDIO_URL`. See known issues 1 and 2 for what is still unproven.
 
 - **The agent can write code.** A new `custom` section type holds the agent's own HTML and section-scoped CSS, and can replace the home hero. A site-wide `global.css` lets it restyle every page. Both are sanitised by `src/code.js` and checked by `src/guard.js` (see "The checks"). Campaigns are now instructed to be takeovers: custom campaign hero, site-wide styling, offer on the plan cards, a landing page.
 - **The agent has four skills.** `agent/skills/copywriting.md`, `design.md`, `flow-building.md` and `development.md`, loaded after the core `agent/SKILL.md`. Each reply lists the skills it used, shown as tags in the Studio chat.
-- **Not yet tested with the real agent.** Everything above was tested with hand-written drafts only (see "What has been tested"). The first live run of "Run a Black Friday sale" with the new capability has not happened.
+- **Not yet tested with the real agent.** Everything above was tested with hand-written drafts only (see "What has been tested"). The first live run of "Run a Black Friday sale" with the new capability has not happened. After the deploy, all public pages and the Studio returned 200, both serve the new stylesheet, and neither logged errors.
 
 ## In one paragraph
 
@@ -28,7 +30,7 @@ A working, deployed proof of concept. The OT Studio lets a user ask a Claude-pow
 
 **Pushing to `main` redeploys both Railway services automatically.** Until 15 November 2026 every redeploy wiped the Studio's data, because the project had no volume. A volume is now attached at `/data`, so data should survive redeploys; see known issue 1 for what has been verified.
 
-The Railway CLI is installed on the agency owner's Mac and this folder is linked to `joyful-reverence` / `production` (`railway status`). Service IDs: Studio `6da9d776-e8f8-48e0-9f5d-22ef53618b33`, OTmenshealth `2200a970-c941-4c25-9d7b-472fef04c5b2`. CLI 5.74 quirks: `railway volume` takes `--service <ID>` before the subcommand (`railway volume --service <ID> add --mount-path /data`), and `railway volume list` without `--service` only shows the linked service's volumes. Reading volume files and `railway ssh` need SSH keys, which are not set up.
+The Railway CLI and the GitHub CLI (`gh`, signed in as `ripple-hue`) are installed on the agency owner's Mac, and the working copy at `~/Downloads/OTmenshealth` is a git checkout of this repo, linked to `joyful-reverence` / `production` (`railway status`). Service IDs: Studio `6da9d776-e8f8-48e0-9f5d-22ef53618b33`, OTmenshealth `2200a970-c941-4c25-9d7b-472fef04c5b2`. CLI 5.74 quirks: `railway volume` takes `--service <ID>` before the subcommand (`railway volume --service <ID> add --mount-path /data`), and `railway volume list` without `--service` only shows the linked service's volumes. Reading volume files and `railway ssh` need SSH keys, which are not set up.
 
 Railway is on a trial (about $5 of credit, 29 days, as of 14 November).
 

@@ -250,7 +250,7 @@ async function run({ message, rejected, draft, current, memory, version, history
     else if (messages.length || role === 'user') messages.push({ role, content: historyText(m) });
   }
   if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
-  messages.push({ role: 'user', content: userTurn({ message, rejected, draft, current, memory, version, generated: store.listMedia() }) });
+  messages.push({ role: 'user', content: userTurn({ message, rejected, draft, current, memory, version, generated: store.listMedia().filter((m) => (m.pipeline || 1) >= images.PIPELINE) }) });
 
   const base = draft ? draft.content : current;
   let site = base;

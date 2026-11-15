@@ -224,12 +224,17 @@ function view(res, which, rest, query) {
   send(res, 404, 'text/html; charset=utf-8', '<body style="font:16px Helvetica,Arial,sans-serif;padding:48px;color:#17130E;background:#F7F1E6">This page does not exist in this version.</body>');
 }
 
-const LOGIN = (bad) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OT Studio</title><link rel="stylesheet" href="/styles.css">
-<body style="background:#17130E;color:#F7F1E6;display:grid;place-items:center;min-height:100vh"><form method="post" action="/login" style="width:min(360px,90vw);text-align:center">
-<p class="eyebrow" style="justify-content:center;color:#EBDDB8"><span class="dot"></span>OT Studio</p><h1 class="title" style="font-size:2.6rem;margin-bottom:28px">Your site, <em style="color:#EBDDB8">on call.</em></h1>
-<input name="passcode" type="password" placeholder="Passcode" autofocus style="width:100%;padding:16px 20px;border-radius:99px;border:1px solid rgba(247,241,230,.3);background:transparent;color:inherit;font:inherit;text-align:center">
-${bad ? '<p style="margin-top:12px;color:#D8BC7E;font-size:.9rem">That passcode is not right.</p>' : ''}
-<button class="btn btn-gold" style="margin-top:16px;width:100%;border:0;cursor:pointer;font-family:inherit">Open the Studio</button></form></body>`;
+// The Studio's own pages are neutral black and white; only Jacob's site uses the OTMENS brand.
+const LOGIN = (bad) => `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OT Studio</title>
+<style>@font-face{font-family:"Inter Tight";src:url("/fonts/inter-tight-latin-400-normal.woff2") format("woff2");font-weight:400}@font-face{font-family:"Inter Tight";src:url("/fonts/inter-tight-latin-300-normal.woff2") format("woff2");font-weight:300}
+body{margin:0;background:#0A0A0A;color:#F2F2F2;font:400 15px/1.5 "Inter Tight","Helvetica Neue",Arial,sans-serif;display:grid;place-items:center;min-height:100vh;-webkit-font-smoothing:antialiased}
+form{width:min(340px,90vw);text-align:center}p.k{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.5);margin:0 0 14px}h1{font-weight:300;font-size:2.2rem;letter-spacing:-.02em;margin:0 0 28px}
+input{box-sizing:border-box;width:100%;padding:14px 18px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#141414;color:inherit;font:inherit;text-align:center;outline:0}input:focus{border-color:rgba(255,255,255,.5)}
+button{margin-top:12px;width:100%;padding:14px;border:0;border-radius:12px;background:#F2F2F2;color:#0A0A0A;font:inherit;font-weight:500;cursor:pointer}.bad{margin-top:12px;color:#E08A8A;font-size:.9rem}</style>
+<body><form method="post" action="/login"><p class="k">OT Studio</p><h1>Your site, on call.</h1>
+<input name="passcode" type="password" placeholder="Passcode" autofocus>
+${bad ? '<p class="bad">That passcode is not right.</p>' : ''}
+<button>Open the Studio</button></form></body>`;
 
 http
   .createServer(async (req, res) => {

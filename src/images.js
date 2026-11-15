@@ -23,6 +23,13 @@ const BODIES = {
   }),
   // The live SOUL API accepts 720p or 1080p (its published spec still lists 2K and 4K). No references.
   'higgsfield-ai/soul/standard': ({ prompt, aspect }) => ({ prompt, aspect_ratio: aspect, resolution: process.env.HF_IMAGE_RESOLUTION || '1080p' }),
+  // Cinema-style stills. No image references; 720p or 1080p.
+  'higgsfield-ai/soul/cinema': ({ prompt, aspect }) => ({ prompt, aspect_ratio: ['9:16', '16:9', '4:3', '3:4', '1:1', '2:3', '3:2'].includes(aspect) ? aspect : '3:4', resolution: '1080p' }),
+  // Recraft Pro takes a preferred palette: the OTMENS brand colours.
+  'recraft/v4.1/pro/text-to-image': ({ prompt, aspect }) => ({
+    prompt, aspect_ratio: aspect, resolution: '2k', output_format: 'jpg',
+    colors: [[23, 19, 14], [247, 241, 230], [235, 221, 184], [216, 188, 126], [122, 94, 44]].map((rgb) => ({ rgb })),
+  }),
 };
 
 // Library images are referenced by site path; Higgsfield needs a public URL for each.
@@ -57,7 +64,7 @@ async function hf(pathname, opts = {}) {
   const res = await fetch(BASE + pathname, {
     ...opts,
     headers: { Authorization: `Key ${credentials()}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(opts.timeoutMs || 30000),
   });
   const text = await res.text();
   let body;
@@ -71,15 +78,29 @@ async function hf(pathname, opts = {}) {
 }
 
 // Submits one image, waits for it, and returns its temporary URL on Higgsfield's CDN.
-async function generate({ prompt, aspect, references = [] }) {
+// Every image is generated with real OTMENS photographs as style references, so its light, grade and
+// texture match the site's photography. This, more than the model, is what moved images from glossy
+// "AI" to photographic in the 15 November bake-off. Product references (when the image shows an OT
+// product) come first, then the style references.
+const STYLE_REFERENCES = ['/img/hero.jpg', '/img/longevity.jpg'];
+const PIPELINE = 2; // images made with style references and the AI-tells review; older ones aren't offered for reuse
+
+async function generate({ prompt, aspect, references = [], model = MODEL, style = false }) {
   const a = ASPECT_ALIASES[aspect] || aspect;
-  const refs = references.slice(0, MAX_REFERENCES).map(publicUrl).filter(Boolean);
-  const body = (BODIES[MODEL] || BODIES['marketing-studio/image/flare'])({ prompt, aspect: ASPECTS.includes(a) ? a : '3:4', refs });
-  const submitted = await hf('/' + MODEL, {
-    method: 'POST',
-    headers: { 'Idempotency-Key': crypto.randomUUID() },
-    body: JSON.stringify(body),
-  });
+  const productRefs = references.slice(0, MAX_REFERENCES).map(publicUrl).filter(Boolean);
+  const styleRefs = style && BODIES[model] === BODIES['marketing-studio/image/flare'] ? STYLE_REFERENCES.map(publicUrl).filter(Boolean) : [];
+  const refs = [...productRefs, ...styleRefs];
+  if (productRefs.length) prompt += ` The OT product is exactly the one in the first reference photograph${productRefs.length > 1 ? 's' : ''}: same shape, finish, cap and label.`;
+  if (styleRefs.length) prompt += ` Match the light, colour grade, film texture and realism of the ${productRefs.length ? 'last two ' : ''}reference photographs; do not copy their objects, people or layout.`;
+  const body = (BODIES[model] || BODIES['marketing-studio/image/flare'])({ prompt, aspect: ASPECTS.includes(a) ? a : '3:4', refs });
+  // Submitting can be slow when references are attached (Higgsfield fetches them first). On a timeout,
+  // retry once with the same idempotency key, as Higgsfield's docs advise, so no second job is created.
+  const submit = { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() }, body: JSON.stringify(body), timeoutMs: 90000 };
+  let submitted;
+  try { submitted = await hf('/' + model, submit); } catch (e) {
+    if (e.name !== 'TimeoutError' && !/timeout/i.test(e.message)) throw e;
+    submitted = await hf('/' + model, submit);
+  }
   const id = submitted.request_id;
   if (!id) throw new Error('Higgsfield did not return a request id.');
   const deadline = Date.now() + TIMEOUT_MS;
@@ -103,11 +124,22 @@ let sharp = null;
 try { sharp = require('sharp'); } catch (e) { console.error('sharp unavailable, saving generated images unconverted:', e.message); }
 const MAX_EDGE = 2400;
 
+async function fetchImage(url) {
+  // 2K PNGs from Higgsfield's CDN are several MB; allow time, and retry once on a slow or dropped connection.
+  for (let tries = 0; ; tries++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(180000) });
+      if (!res.ok) throw new Error(`Could not download the image (${res.status}).`);
+      return { type: res.headers.get('content-type') || '', buffer: Buffer.from(await res.arrayBuffer()) };
+    } catch (e) {
+      if (tries >= 1 || !(e.name === 'TimeoutError' || /timeout|fetch failed|ECONNRESET/i.test(e.message))) throw e;
+    }
+  }
+}
+
 async function download(url) {
-  const res = await fetch(url, { signal: AbortSignal.timeout(60000) });
-  if (!res.ok) throw new Error(`Could not download the image (${res.status}).`);
-  const type = res.headers.get('content-type') || '';
-  const original = { buffer: Buffer.from(await res.arrayBuffer()), ext: /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : 'jpg' };
+  const { type, buffer: raw } = await fetchImage(url);
+  const original = { buffer: raw, ext: /png/.test(type) ? 'png' : /webp/.test(type) ? 'webp' : 'jpg' };
   if (!sharp) return original;
   try {
     const buffer = await sharp(original.buffer)
@@ -124,7 +156,10 @@ async function download(url) {
 // What every image must meet before it can appear on the site, judged by a model looking at it.
 // Safety rules are pass/fail. Quality is scored against a real OTMENS photograph, because an image
 // can break no rule and still look cheap, fake or off-brand.
-const MIN_SCORE = Number(process.env.HF_MIN_IMAGE_SCORE) || 7;
+// Calibrated 15 November on images already judged by eye: everything the owner called "AI slop" (and
+// every image with the sun in frame, a filter look or a baked-in border) scored 5 or less; images written
+// to the current imagery skill scored 6. So 6 passes.
+const MIN_SCORE = Number(process.env.HF_MIN_IMAGE_SCORE) || 6;
 const REVIEW_RULES = `You are the photo editor for OTMENS, a regulated U.S. men's telehealth brand with a quiet-luxury look. You decide whether a newly generated image may appear on its website. You are strict: a weak image hurts the brand more than no image.
 
 Hard rules. Any failure means ok=false:
@@ -140,6 +175,15 @@ Quality, scored 1 to 10 (10 = a top agency would run it as a campaign hero):
 - If an OT product appears, it matches the product reference photo when one is given (shape, finish, cap, label), or otherwise the brand's real products: a matte or frosted bottle with a gold cap and a cream paper label with a serif "OT". A generic tub or a gold sticker label scores 4 or less.
 - It does not need to copy the house reference's colours exactly: a darker, moodier or more seasonal grade is fine if it is still warm, restrained and editorial.
 - It suits its stated purpose and leaves room for text where the purpose needs it.
+
+AI tells. The owner rejected earlier images as "AI slop" for exactly these. Look for each one; any that is clearly present caps the score at 5:
+- Glossy, plastic or CGI-smooth surfaces; products that look rendered rather than photographed.
+- Kitsch staging: ribbons or bows tied around stones or products, gift wrapping, ornaments arranged for the camera, props balanced impossibly or floating. (One natural prop lying where it could plausibly be, such as a sprig on a table, is fine.)
+- Lighting effects added for drama: halo rim light around the subject, sun stars, lens flares, glowing edges, bokeh balls used as decoration.
+- A heavy "cinematic" grade: teal-and-orange, crushed blacks with glowing highlights, oversaturated warmth, blown-out skies.
+- Over-sharpened edges, smeared or repeating textures, warped or melted background details, incoherent shadows.
+- Anything baked into the frame that a website can't use: film borders, letterbox bars, rounded frame corners, vignettes so heavy they read as a frame.
+- The generic stock-advert look: a too-perfect, centred hero shot with nothing real or specific about it.
 
 Set ok=true only if every hard rule passes and the score is ${MIN_SCORE} or more.`;
 
@@ -157,7 +201,14 @@ const REVIEW_SCHEMA = {
 
 const HOUSE_REFERENCE = '/img/longevity.jpg'; // a real OTMENS photograph that shows the standard
 
-async function review(client, model, url, purpose, references = []) {
+// The reviewer sees the exact file that will be saved, as a JPEG small enough for the API.
+async function reviewSource(image) {
+  if (typeof image === 'string') return { type: 'url', url: image };
+  const jpeg = sharp ? await sharp(image).resize({ width: 1568, height: 1568, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer() : image;
+  return { type: 'base64', media_type: sharp ? 'image/jpeg' : 'image/webp', data: jpeg.toString('base64') };
+}
+
+async function review(client, model, image, purpose, references = []) {
   const house = publicUrl(HOUSE_REFERENCE);
   const products = references.slice(0, MAX_REFERENCES).map(publicUrl).filter(Boolean);
   const content = [];
@@ -165,7 +216,7 @@ async function review(client, model, url, purpose, references = []) {
   for (const p of products) content.push({ type: 'text', text: 'Product reference: the new image was asked to reproduce the OT product in this photo. Judge the product against this one.' }, { type: 'image', source: { type: 'url', url: p } });
   content.push(
     { type: 'text', text: 'The new image to judge:' },
-    { type: 'image', source: { type: 'url', url } },
+    { type: 'image', source: await reviewSource(image) },
     { type: 'text', text: `Purpose: ${purpose}\nReturn ok, the quality score, the problems (empty if none; be specific), and a one-line description of what the new image shows, for the site's image library.` },
   );
   const res = await client.messages.parse({
@@ -189,12 +240,12 @@ async function createImages(requests, { client, model, saveMedia, onProgress = (
       if (!r || typeof r.prompt !== 'string' || r.prompt.trim().length < 20) throw new Error('Each image needs a descriptive prompt.');
       onProgress(`Generating ${label}`);
       const references = Array.isArray(r.references) ? r.references.filter((p) => typeof p === 'string') : [];
-      const { url, requestId } = await generate({ prompt: r.prompt.trim(), aspect: r.aspect, references });
-      onProgress(`Checking ${label}`);
-      const verdict = await review(client, model, url, r.purpose || 'campaign image', references);
-      if (!verdict.ok) { out.push({ ok: false, purpose: r.purpose, score: verdict.score, url, reason: `Failed the image check (quality ${verdict.score}/10): ` + (verdict.problems.join('; ') || 'not suitable') }); continue; }
+      const { url, requestId } = await generate({ prompt: r.prompt.trim(), aspect: r.aspect, references, style: true });
       const { buffer, ext } = await download(url);
-      const saved = saveMedia(buffer, ext, { prompt: r.prompt, purpose: r.purpose || '', alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect, requestId });
+      onProgress(`Checking ${label}`);
+      const verdict = await review(client, model, buffer, r.purpose || 'campaign image', references);
+      if (!verdict.ok) { out.push({ ok: false, purpose: r.purpose, score: verdict.score, url, reason: `Failed the image check (quality ${verdict.score}/10): ` + (verdict.problems.join('; ') || 'not suitable') }); continue; }
+      const saved = saveMedia(buffer, ext, { prompt: r.prompt, purpose: r.purpose || '', alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect, requestId, pipeline: PIPELINE, score: verdict.score });
       out.push({ ok: true, path: saved.path, purpose: r.purpose, score: verdict.score, alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect });
     } catch (e) {
       out.push({ ok: false, purpose: r && r.purpose, reason: e.message });
@@ -203,4 +254,4 @@ async function createImages(requests, { client, model, saveMedia, onProgress = (
   return out;
 }
 
-module.exports = { enabled, createImages, generate, review, download, publicUrl, MAX_PER_REQUEST, MAX_REFERENCES, ASPECTS, MODEL };
+module.exports = { enabled, createImages, generate, review, download, publicUrl, MAX_PER_REQUEST, MAX_REFERENCES, ASPECTS, MODEL, PIPELINE };

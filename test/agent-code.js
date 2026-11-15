@@ -85,7 +85,7 @@ const allowed = {
   },
 };
 for (const [name, sec] of Object.entries(allowed)) {
-  const s = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'ok', type: 'custom', ...sec } }], current);
+  const s = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'ok', type: 'custom', ...sec, html: `<div class="wrap">${sec.html}</div>` } }], current);
   const v = validate(s, current);
   expect(`allows ${name}`, v.ok, v.errors[0] || '');
 }
@@ -124,10 +124,13 @@ const bad = {
   'insecurity in alt text': { html: '<p>Hi</p><img src="/img/hero.jpg" alt="Embarrassed man">' },
 };
 for (const [name, sec] of Object.entries(bad)) {
-  const s = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'bad', type: 'custom', ...sec } }], current);
+  const s = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'bad', type: 'custom', ...sec, html: `<div class="wrap">${sec.html}</div>` } }], current);
   const v = validate(s, current);
   expect(`blocks ${name}`, !v.ok, v.errors[0] || '(no error)');
 }
+const noWrap = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'edge', type: 'custom', html: '<h2 class="title">Text with no container</h2>' } }], current);
+expect('blocks a custom section with no .wrap container', !validate(noWrap, current).ok, validate(noWrap, current).errors[0]);
+
 const globalBad = {
   'site-wide CSS hiding the footer': { css: '.footer { display: none }' },
   'site-wide JS hiding the legal text': { js: 'document.querySelectorAll(".legal").forEach(function (e) { e.remove(); });' },
@@ -144,7 +147,7 @@ for (const [name, fields] of Object.entries(globalBad)) {
 // What the renderer puts on the page
 const withJs = applyOps(current, [
   { op: 'update_global', fields: { scripts: ['https://cdn.example.com/lib@1.0.0/lib.js'], js: 'window.__site = 1;' } },
-  { op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'quiz', type: 'custom', html: '<p class="x">Hi</p>', js: 'section.dataset.ready = "1";' } },
+  { op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'quiz', type: 'custom', html: '<div class="wrap"><p class="x">Hi</p></div>', js: 'section.dataset.ready = "1";' } },
 ], current);
 const page = renderPage(withJs, 'home');
 expect('section js runs after load with `section` set', page.includes(`var section=document.querySelector('[data-section="quiz"]');`) && page.includes('section.dataset.ready'));

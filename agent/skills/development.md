@@ -61,6 +61,7 @@ Go down the list only when the idea needs it. CSS beats JavaScript for anything 
 - **Readable small text.** `font-size` of at least `0.8125rem` (13px) for any text, and no `opacity` below 1 or pale `rgba()` colours on text that sits on gold or champagne.
 - **Small and scoped.** Name classes after what they are (`.offer`, `.offer-price`), keep custom CSS short, and keep site-wide CSS to deliberate changes, not overrides of everything.
 - **CSS motion.** Prefer CSS transitions and `@keyframes` for simple motion, always with a `@media (prefers-reduced-motion: reduce)` rule that turns it off.
+- **Keep text off the screen edge.** Every custom section puts its text and buttons inside `<div class="wrap">`, the page's centred container with side margins; the code rejects a section without one. Only full-bleed photos and backgrounds sit outside it. When a photo fills a split layout, keep the text column inside `.wrap` and let the photo bleed to the edge on its own side.
 - **The first section.** The nav floats over the top 90px of the first section of a page, so give a first custom section at least 150px of top padding. Set `dark: true` on a dark custom hero so the nav switches to its dark style.
 - **Undo is a version.** Never patch around old code. If a custom section is wrong, replace its `html`, `css` and `js` whole.
 

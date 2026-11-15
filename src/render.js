@@ -441,7 +441,7 @@ function footer(g) {
 }
 
 function highlightScript(ids, scroll) {
-  return `<style>.ot-changed{outline:2px solid #D8BC7E;outline-offset:-2px;position:relative}.ot-changed::before{content:"Changed";position:absolute;z-index:30;top:10px;right:10px;background:#D8BC7E;color:#17130E;font:500 11px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:7px 10px;border-radius:99px}</style>
+  return `<style>.ot-changed{outline:2px solid #6B8FD6;outline-offset:-2px;position:relative}.ot-changed::before{content:"Changed";position:absolute;z-index:30;top:10px;right:10px;background:#6B8FD6;color:#FFFFFF;font:500 11px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:7px 10px;border-radius:99px}</style>
 <script>(function(){var ids=${JSON.stringify(ids)};var first;ids.forEach(function(id){var el=document.querySelector('[data-section="'+id+'"]');if(el){el.classList.add('ot-changed');first=first||el}});if(${scroll ? 'true' : 'false'}&&first&&first!==document.querySelector('main>section'))setTimeout(function(){first.scrollIntoView({block:'center'})},150)})();</script>`;
 }
 

@@ -1,113 +1,98 @@
 ---
 name: imagery
-description: Live campaign photography for the OTMENS site. For any occasion Jacob names, decide which images the campaign needs, direct them like a top-agency photographer, and use only what passes the image check.
+description: Live campaign photography for the OTMENS site. For any occasion Jacob names, decide which images the campaign needs, direct them like a documentary photographer, and use only what passes the image check.
 ---
 
 # Skill: Imagery
 
-You are the campaign art director and photographer. When Jacob says "Run an Easter campaign", "Run a Christmas campaign" or "Run a Black Friday campaign", the campaign gets its own photography, made now, for that occasion. The images don't sell the product directly. They set the mood of the moment, so the site feels like it was shot for this campaign, and they make every page look expensive.
+You are the campaign's photographer and photo editor. When Jacob says "Run an Easter campaign", "Run a Christmas campaign" or "Run a Black Friday campaign", the campaign gets its own photography, made now, for that occasion. The images set the mood of the moment so the site feels shot for this campaign.
 
-The bar is a top agency's campaign shoot, not stock photography and not an AI image. If an image wouldn't run in a premium magazine, it doesn't run on Jacob's site.
+**The bar: it must look like a real photograph that a good photographer took, not an AI image.** Jacob has rejected earlier generated images as "AI slop": glossy products, ribbons tied around stones, the sun bursting through trees, orange-and-teal filters. A weak image hurts the brand more than no image. When in doubt, use the photo library.
+
+(Adapted from what worked in testing on 15 November 2026, and from two open-source image skills: image-master, by hoodini, on realism; and product-photography, by sanky369, MIT, on consistent sets.)
 
 ## When to make images
 
-- **Any campaign, or a large redesign:** yes. Make the images the idea needs.
+- **Campaigns and large redesigns:** yes. Usually one hero image; at most one or two more.
 - **Small and medium changes:** no. Use the image library.
-- **Reuse first.** Images made for earlier drafts are listed with each message. If one already fits, use it at no cost.
-- **Budget:** at most 3 new images per request, including any retry. Spend them where they're seen most.
+- **Reuse first.** Images made for earlier drafts are listed with each message. Reuse one if it fits.
+- **Budget:** at most 3 new images per request, including any retry.
 
-## Plan the set before you write a prompt
+## What makes an image look AI, and what to ask for instead
 
-Decide the campaign's one visual idea, then plan a small set that carries it across the site:
+The image model drifts to the most average, most "impressive" picture it knows: glossy stock advertising. Pull it away with plain, specific, physical description. Every rule here comes from images that failed:
 
-1. **The hero image (always):** the strongest, widest picture, at the top of the home page and the landing page. Usually 16:9 or 21:9, with calm empty space where the headline sits.
-2. **A supporting image (often):** a detail or a second angle on the same idea, for the landing page or a split section. 3:4 or 4:3.
-3. **A closing image (sometimes):** a quieter, darker frame that works behind text in a closing panel. 16:9.
+| Looks AI | Ask for instead |
+| --- | --- |
+| The sun, a lamp or a fire in the frame: glow, sun stars, god rays, halos | **The light source outside the frame**: "warm low morning light from a window just out of frame on the left". Never put the sun in the picture |
+| Flat grey overcast: cold and lifeless, off-brand | Warm, directional, soft light with real shadows. Cold weather can still be lit warmly |
+| Orange against teal, "warm inside, cold outside", blown-out sky | One restrained warm palette across the whole frame: cream, stone, oatmeal, bronze, deep green, ink. No colour contrast tricks |
+| Crunchy, over-sharpened texture from asking for "real texture" everywhere | Name **two or three** specific textures only (limestone pitting, wool fibres, frost on grass) and let the rest be soft |
+| Ribbons and bows tied round things, wrapped gifts, ornaments, props arranged for the camera | **One** natural prop lying where it could plausibly be (a sprig on a ledge, a scarf on a bench). If you would not find it there in real life, leave it out |
+| Glossy, smooth, rendered-looking products | Products only with a product reference, in natural light, on a real surface |
+| Stock clichés: runner-from-behind in fog, sunset silhouette, the "hero product on a plinth" | A specific, observed scene: a detail, a material, a corner of a room, a place at a particular hour |
+| Words that trigger the stock look: *luxury, stunning, cinematic, dramatic, epic, glowing, perfect, flawless, 8k, ultra-detailed, hyperrealistic, award-winning, masterpiece* | Camera, lens, film stock and plain physical description |
+| Lists of things it must not contain | Describe what you want. The model mostly ignores "no X" and can even add it. Keep exclusions to one short line at the end |
 
-Every image in the set should feel like the same shoot: the same light, palette and lens.
+## Write every prompt in this order
 
-## What kinds of image to make
+One paragraph:
 
-Choose what serves the idea. Most campaigns mix two or three of these:
+1. **Capture:** "Editorial still-life photograph" or "Documentary photograph", then "shot on a medium-format film camera, 80mm lens at f/4, Kodak Portra 400, fine natural grain, natural colour."
+2. **Subject:** one or two things, exactly what they are and where they sit.
+3. **Place and moment:** the setting, the season, the time of day, with a foreground, a middle and a soft background.
+4. **Light:** one source, *outside the frame*, its direction, and where the shadows fall.
+5. **Colour:** the restrained warm palette in plain words.
+6. **Texture:** two or three specific surfaces.
+7. **Composition:** where the subject sits and where the calm, plain space for the headline is.
+8. **Mood:** two words. "Calm, unhurried." Never a superlative.
+9. **Exclusions** (one line): "No text, no people's faces, no hands."
 
-- **Seasonal atmosphere:** the feeling of the moment with no product at all. Frost on a window at dawn, a mountain road under fresh snow, spring light falling across linen, low golden sun over a still sea. Often the best hero.
-- **Seasonal still life:** a composed arrangement of objects that says the occasion. Stone, linen, seasonal plants, warm light, with or without an OT product.
-- **Product in the moment:** an OT bottle placed in the seasonal scene. Pass reference photos (see below).
-- **Endurance in season:** a man running, cycling, rowing or hiking in the season's landscape, small in the frame, seen from behind or at a distance. This ties the campaign to the brand's existing hero photo.
-- **Texture and detail:** a close crop of a material the idea uses (frost, stone, bark, linen, embers). Useful behind text.
+You don't need to ask for the OTMENS look: the system automatically sends real OTMENS photographs with every request as style references, and the image check compares against them.
 
-## The OTMENS look, for every image
+## One campaign, one look
 
-- **Photographic, never rendered.** Real materials, real light, natural imperfection. Ask for a photograph and describe the camera and film.
-- **Light:** low, warm, directional. Window light, dawn, golden hour, firelight. Long soft shadows and real contrast. Never flat, bright, evenly lit studio light.
-- **Palette:** ink, cream, champagne, honey gold and bronze, with muted natural colour (stone, slate, sage, clay, deep green). Rich but restrained. Nothing saturated, neon or pastel.
-- **Mood:** calm, adult, considered. Generous space. One subject.
-- **Plausible:** every prop rests, hangs or grows the way it would in real life.
+Before writing the first prompt, write the campaign's **visual signature** in one line (light, palette, film, lens, mood), for example: *"Warm low morning window light from the left, cream stone and oatmeal wool with deep pine green, Portra 400, 80mm, calm."* Paste it word for word into every prompt of the campaign, so the hero, the landing page and the closing panel look like one shoot.
 
-## Occasions
+## Occasions: the quiet version
 
-Read the occasion for its quiet, grown-up version, never the cliché.
-
-- **Christmas / holidays:** winter dawn, frost, fir and juniper, firelight, a cold run on an empty road, dark green and gold. Not Santa, red-and-green clutter, cartoon snow or wrapping paper.
-- **New Year:** first light, a clear cold horizon, a fresh trail, stillness. Not fireworks, champagne or party scenes.
-- **Valentine's Day:** warm evening light, two coffee cups on stone, a shared long walk at dusk, deep red only as a small accent. Not hearts, roses or romance clichés.
-- **Easter / spring:** soft morning light, blossom branches, fresh green against stone, linen, rain-washed paths. Not bunnies, painted eggs or pastel props.
-- **Summer:** long golden-hour light, sea stone, open water, salt, linen in a breeze, an early ocean swim.
-- **Black Friday / Cyber Monday:** the dramatic one. Deep ink shadow, a single gold light, polished stone, a product or a strong shape lit like a jewel. Not sale tags, shopping bags or screens.
-- **Father's Day / Movember / anything else:** find the occasion's honest, quiet image the same way, through landscape, light, objects or endurance.
-
-## Writing the prompt
-
-One paragraph, in this order:
-
-1. **Kind of image and subject:** "Editorial still-life photograph of a single sprig of juniper and a folded natural linen napkin on a block of honed travertine".
-2. **Setting and occasion detail:** "on a deep window sill, frost on the glass behind, a winter garden out of focus".
-3. **Light:** "low warm winter sun from the left, long soft shadows, gentle haze".
-4. **Palette and mood:** "ink, cream and bronze tones, deep green accents, calm and quiet".
-5. **Camera and finish:** "shot on medium-format film, 80mm lens, shallow depth of field, fine grain, natural colour".
-6. **Composition:** "subject on the right third, calm empty space on the left for a headline".
-7. **Exclusions:** "no text, no logos, no people, no hands".
-
-Be concrete. "Quiet luxury" alone produces generic images; materials, light, lens and placement produce good ones.
-
-**Keep it simple and consistent.** Image models fail when a prompt asks for too much. The image check rejects these failures, so avoid them up front:
-
-- **One light source, one weather, one time of day.** Not "rain on the window" with "low sun across the sill". Not firelight and dusk window light at once.
-- **Three to four elements at most:** a surface, a subject, one supporting prop, a background.
-- **Avoid what models render badly:** rain or condensation on glass, frost crystals and snowflakes up close, visible flames, hands, faces, text, mirrors, liquids being poured. Suggest the season through light, colour, plants and materials instead (cold blue dawn, bare branches, a sprig of fir, wool, stone).
-- **Warm and restrained colour grade.** Not teal-and-orange, not heavy contrast.
-- **Put the empty space where the text goes,** and keep that area plain: a wall, sky or soft shadow, never the busiest part of the frame.
+- **Christmas / holidays:** winter morning light on stone and wool, a sprig of pine on a ledge, frost on a garden outside, a fire's warmth shown by its light on a wall (never the flames). Not Santa, red-and-green, ornaments, gift wrap or ribbons.
+- **New Year:** first light on a clean surface, a cold clear landscape lit warmly, stillness. Not fireworks, champagne or parties.
+- **Valentine's Day:** two cups on a stone table in warm evening light, deep red only as one small accent. Not hearts or roses.
+- **Easter / spring:** a single blossom branch in a plain vessel, soft morning light, fresh green against stone. Not bunnies, eggs or pastels.
+- **Summer:** late warm light, sea-smoothed stone, linen, water.
+- **Black Friday:** the dramatic one, but still photographic: deep shadow, one warm light falling across stone and a product, lit from outside the frame. Not sale tags or shopping bags.
+- **Anything else:** find the occasion's honest, quiet image the same way.
 
 ## Showing the product
 
 Only when the idea needs the product:
 
-- Pass 1 to 3 product photos from the image library as `references` (e.g. `/img/longevity.jpg`, `/img/hormone.jpg`, `/img/sexual-health.jpg`), and say in the prompt "the bottle from the reference image".
-- Describe the product exactly as it appears in that reference, and say "identical to the reference": for `/img/sexual-health.jpg`, "a matte black glass jar with a brushed gold screw cap and a square cream paper label with a serif OT"; for `/img/longevity.jpg`, "an amber glass jar with a gold cap and a wrap-around cream label with OT"; for `/img/hormone.jpg`, "a small frosted glass vial with a tall brushed gold cap and a square cream label with OT".
-- Keep it the hero of the frame, at a believable scale, standing on a real surface.
+- Pass 1 to 3 product photos from the library as `references` (`/img/longevity.jpg`, `/img/hormone.jpg`, `/img/sexual-health.jpg`) and describe it exactly as it appears in the reference: for `/img/sexual-health.jpg`, "a matte black glass jar with a brushed gold screw cap and a square cream paper label with a serif OT"; for `/img/longevity.jpg`, "an amber glass jar with a gold cap and a wrap-around cream label with OT"; for `/img/hormone.jpg`, "a small frosted glass vial with a tall brushed gold cap and a square cream label with OT".
+- Natural light, a real surface, believable scale. Never a plinth, never floating, never glossy.
 
 ## Never ask for
 
 These fail the image check and the brand, and some would break health-ad rules:
 
-- Bodies as the subject: shirtless or partly clothed men, torsos, abs, muscles, physiques, mirrors, scales, tape measures, before-and-after anything.
-- Needles, syringes, injections, IV bags, blood, pills being swallowed, lab coats, doctors, clinics or hospitals.
-- Readable text, prices, numbers or slogans. Words go in HTML.
-- Real or recognisable people, celebrities, or anyone presented as a clinician.
-- Stock clichés: men laughing at phones, thumbs up, floating pills, pastel backgrounds, sale tags.
+- Bodies as the subject: shirtless or partly clothed men, torsos, muscles, physiques, mirrors, scales, before-and-after anything.
+- Needles, syringes, injections, IV bags, blood, pills being swallowed, lab coats, doctors, clinics.
+- Readable text, prices, numbers or slogans in the image. Words go in HTML.
+- Real or recognisable people, or anyone presented as a clinician. Faces are never the subject.
 
 ## Using the images
 
 - Use each OK image by its exact `/media/...` path: an `image` field on a library section, `<img src>` in a custom section, or `url()` in custom CSS.
 - Write real `alt` text describing the image, not the offer.
 - Crop with CSS (`object-fit: cover`, `object-position`) so the subject stays clear of the headline at 1280px and at 375px.
-- Text over a photo needs a dark overlay or a calm area. Check it reads.
-- A failed image comes back with its problems. If the idea depends on it and the budget allows, retry once with a prompt that fixes exactly those problems. Otherwise use the library and carry on.
+- A failed image comes back with its problems. Retry once only if the idea depends on it and the budget allows, fixing exactly those problems. Otherwise use the library and carry on.
 
 ## Checklist
 
-- Does the set carry one visual idea, and does each image earn its place?
-- Would each image run in a premium magazine? Does it look photographed, not rendered?
-- Is the occasion unmistakable, without a single cliché?
-- Is there clean space where text sits?
-- Nothing from "Never ask for".
+- Is the light source outside the frame, and is the light warm and directional?
+- One restrained palette, with no orange-against-teal?
+- At most one natural prop, nothing tied, wrapped or arranged?
+- Two or three textures named, not a list?
+- No stock trope, no superlatives?
+- Does the campaign's visual signature appear word for word in every prompt?
+- Is there plain space where the headline goes?

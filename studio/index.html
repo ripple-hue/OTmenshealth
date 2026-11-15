@@ -9,14 +9,19 @@
 @font-face { font-family: "Inter Tight"; src: url("/fonts/inter-tight-latin-300-normal.woff2") format("woff2"); font-weight: 300; }
 @font-face { font-family: "Inter Tight"; src: url("/fonts/inter-tight-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
 @font-face { font-family: "Inter Tight"; src: url("/fonts/inter-tight-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
-:root { --ink: #17130E; --ink2: #221D16; --ink3: #2E281F; --cream: #F7F1E6; --paper: #FDFBF7; --champagne: #EBDDB8; --honey: #D8BC7E; --bronze: #7A5E2C; --mute: rgba(247,241,230,.6); --rule: rgba(247,241,230,.12); --gold: linear-gradient(180deg,#F0E2BC,#D8BC7E); --sans: "Helvetica Neue","Inter Tight",Helvetica,Arial,sans-serif; --serif: "Instrument Serif",Georgia,serif; }
+:root { /* OT Studio: neutral black and white, so the tool never competes with the site it previews */
+  --ink: #0A0A0A; --ink2: #141414; --ink3: #1C1C1C; --cream: #F2F2F2; --paper: #FFFFFF;
+  --champagne: #E6E6E6; --honey: #9A9A9A; --bronze: #8A8A8A;
+  --mute: rgba(255,255,255,.55); --rule: rgba(255,255,255,.1); --gold: #F2F2F2;
+  --ok: #7FAE8A; --accent: #6B8FD6;
+  --sans: "Inter Tight","Helvetica Neue",Helvetica,Arial,sans-serif; --serif: var(--sans); }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { font: 400 14.5px/1.5 var(--sans); color: var(--cream); background: var(--ink); -webkit-font-smoothing: antialiased; display: grid; grid-template-rows: 58px 1fr; overflow: hidden; }
 button, textarea, input { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; }
-em { font-family: var(--serif); font-style: italic; color: var(--champagne); font-size: 1.15em; }
-:focus-visible { outline: 2px solid var(--honey); outline-offset: 2px; border-radius: 6px; }
+em { font-style: normal; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
 .bar { display: flex; align-items: center; gap: 18px; padding: 0 18px; border-bottom: 1px solid var(--rule); min-width: 0; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 500; letter-spacing: .02em; white-space: nowrap; }
@@ -44,18 +49,18 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .msg.user { align-self: flex-end; background: var(--cream); color: var(--ink); padding: 10px 14px; border-radius: 16px 16px 4px 16px; white-space: pre-wrap; }
 .msg.user.rej::before { content: "Rejected"; display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--bronze); margin-bottom: 2px; }
 .msg.agent { align-self: flex-start; background: var(--ink2); border: 1px solid var(--rule); padding: 14px; border-radius: 16px 16px 16px 4px; }
-.msg.agent.err { border-color: rgba(216,188,126,.5); }
+.msg.agent.err { border-color: rgba(255,255,255,.5); }
 .msg.system { align-self: center; font-size: 12px; color: var(--mute); text-align: center; }
 .msg p { margin: 0; }
 .thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
 .thumbs img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid var(--rule); display: block; }
 .msg .skills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.msg .skills span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--honey); border: 1px solid rgba(216,188,126,.4); border-radius: 99px; padding: 3px 9px; }
+.msg .skills span { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--honey); border: 1px solid rgba(255,255,255,.4); border-radius: 99px; padding: 3px 9px; }
 .label { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--honey); margin: 14px 0 6px; }
 .changes { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .changes li { padding-left: 12px; border-left: 1px solid var(--honey); }
 .changes span { display: block; color: var(--mute); font-size: 13px; }
-.learned { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(216,188,126,.12); border: 1px solid rgba(216,188,126,.4); }
+.learned { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.4); }
 .learned .label { margin-top: 0; }
 .learned p + p, .plain p + p { margin-top: 4px; }
 .plain { color: var(--mute); font-size: 13px; }
@@ -82,14 +87,14 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .cmp .cmp-note { margin-left: auto; }
 .status { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--rule); min-height: 56px; flex-wrap: wrap; }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); flex: none; }
-.status.draft .dot { background: var(--honey); box-shadow: 0 0 0 4px rgba(216,188,126,.25); }
-.status.ready .dot { background: #9BC49B; }
+.status.draft .dot { background: var(--cream); box-shadow: 0 0 0 4px rgba(255,255,255,.14); }
+.status.ready .dot { background: var(--ok); }
 .status strong { font-weight: 500; }
 .status .sub { color: var(--mute); }
 .checks { display: flex; gap: 6px; flex-wrap: wrap; }
 .checks span { font-size: 11.5px; padding: 3px 9px; border-radius: 99px; border: 1px solid var(--rule); color: var(--mute); white-space: nowrap; }
-.checks span.ok::before { content: "✓ "; color: #9BC49B; }
-.checks span.warn { border-color: rgba(216,188,126,.6); color: var(--champagne); }
+.checks span.ok::before { content: "✓ "; color: var(--ok); }
+.checks span.warn { border-color: rgba(255,255,255,.6); color: var(--champagne); }
 .btn { padding: 9px 18px; border-radius: 99px; font-weight: 500; white-space: nowrap; }
 .btn.gold { background: var(--gold); color: var(--ink); }
 .btn.line { border: 1px solid var(--rule); }
@@ -114,10 +119,10 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .drawer .body { overflow-y: auto; padding: 4px 20px 20px; display: grid; gap: 10px; align-content: start; }
 .drawer footer { padding: 14px 20px; border-top: 1px solid var(--rule); color: var(--mute); font-size: 12px; }
 .card { border: 1px solid var(--rule); border-radius: 14px; padding: 14px; }
-.card.live { border-color: rgba(155,196,155,.6); }
+.card.live { border-color: rgba(127,174,138,.5); }
 .card h3 { margin: 0 0 2px; font-size: 14px; font-weight: 500; display: flex; gap: 8px; align-items: center; }
 .tag { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--rule); color: var(--mute); font-weight: 400; }
-.tag.live { color: #9BC49B; border-color: rgba(155,196,155,.6); }
+.tag.live { color: var(--ok); border-color: rgba(127,174,138,.5); }
 .card p { margin: 0; }
 .card .when { color: var(--mute); font-size: 12px; margin-top: 2px; }
 .card .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
@@ -277,7 +282,7 @@ function drawCompare() {
   el.innerHTML = `<span class="sub">Compare</span><select id="cmpL" aria-label="Left side">${opts(L)}</select>
     <button class="ghost" id="cmpSwap" title="Swap sides" aria-label="Swap sides">⇄</button>
     <select id="cmpR" aria-label="Right side">${opts(R)}</select>
-    <span class="sub cmp-note">Gold outline: changed on the right compared with the left</span>`;
+    <span class="sub cmp-note">Blue outline: changed on the right compared with the left</span>`;
   $('cmpL').onchange = (e) => { cmpL = e.target.value; draw(); };
   $('cmpR').onchange = (e) => { cmpR = e.target.value; draw(); };
   $('cmpSwap').onclick = () => { [cmpL, cmpR] = [R, L]; draw(); };

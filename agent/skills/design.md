@@ -40,7 +40,7 @@ If you finish and the page has the same sections in the same order with the same
 - Generous space. Crowding reads as cheap.
 - The italic gold serif accent is the brand's signature. One per headline, never decoration.
 - **Design the phone version on purpose, not by collapse.** On a phone, the idea's key visual (a giant figure, a card, a photo) sits directly with the headline: above it, or immediately after it, before the body copy and buttons. Never let it fall to the bottom of a section after the buttons, and never leave an empty gap taller than about 80px where a desktop column used to be. If the visual doesn't work small, make a smaller phone version of it rather than pushing it down.
-- **The headline is the loudest thing in a campaign hero.** A visual can be big, but the offer line must still read first, on desktop and on a phone.
+- **In a campaign hero, the occasion's name is the loudest thing on the screen.** "Black Friday", "Christmas", "Easter" set huge, bigger than any photo or card, read first on desktop and on a phone. The offer comes straight after it, still large. A photo can support it but never outshouts it.
 - **Small print stays readable.** Terms, notes and labels are at least 13px, at full contrast for their background: dark text on gold or champagne, light text on ink. Never pale or semi-transparent text on gold.
 
 ## Craft (adapted from Apple's design principles, via Emil Kowalski's apple-design skill, MIT)

@@ -467,6 +467,10 @@ html.lenis { scroll-behavior: auto; }
 .custom em { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -.01em; }
 .custom-dark .eyebrow, .custom-dark .display em, .custom-dark .title em { color: var(--champagne); }
 .custom img { max-width: 100%; }
+/* The page container keeps its side margins whatever a custom section's own CSS says: a live campaign
+   hero set its own .wrap width and its text ran to the screen edge. */
+.custom .wrap { width: min(1180px, 100% - 48px) !important; max-width: none !important; margin-left: auto !important; margin-right: auto !important; }
+@media (max-width: 560px) { .custom .wrap { width: calc(100% - 32px) !important; } }
 
 .closing.theme-champagne { background: radial-gradient(120% 140% at 50% 0%, #F3E8CB 0%, var(--cream) 55%, var(--paper) 100%); }
 .closing-image { padding-top: clamp(24px, 4vw, 56px); }

@@ -48,7 +48,9 @@ const TIMEOUT_MS = 180000;
 // One combined key ("id:secret"), or the two halves the Higgsfield docs use.
 const credentials = () =>
   process.env.HF_API_KEY || (process.env.HF_API_KEY_ID && process.env.HF_API_KEY_SECRET ? `${process.env.HF_API_KEY_ID}:${process.env.HF_API_KEY_SECRET}` : '');
-const enabled = () => !!credentials();
+// Image generation is OFF unless HF_IMAGES=on (owner's call, 15 November 2026: the generated images still
+// looked too AI for the demo, so campaigns use the photo library for now). The key can stay in Railway.
+const enabled = () => process.env.HF_IMAGES === 'on' && !!credentials();
 
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 

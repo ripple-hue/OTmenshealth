@@ -38,6 +38,19 @@ Go down the list only when the idea needs it. CSS beats JavaScript for anything 
 - **Interactive tools stay non-medical.** A "find your plan" quiz may ask about goals and preferences and recommend a plan from the brand guide's facts. It may never ask about symptoms, conditions or medications, recommend a treatment, or send answers anywhere.
 - **Previews are sandboxed:** cookies and localStorage may not work there. Don't depend on them.
 
+## How it should feel (adapted from Apple's WWDC talks, via Emil Kowalski's apple-design skill, MIT)
+
+- **Instant response.** Anything clickable reacts the moment it is pressed, not on release: for example `.btn:active { transform: scale(.97); transition: transform 100ms ease-out; }`. No artificial delays or debounces on what the visitor does.
+- **Never lock out input.** A visitor can click again, go back or change their answer while something is still animating. Start any new animation from where the element is now, never by jumping to where it was going.
+- **Spatial consistency.** Things leave the way they came in: a panel that slides in from the right leaves to the right. Menus, pop-overs and expanding panels grow from the button that opened them (`transform-origin` on the trigger), not from the middle of the screen.
+- **Motion with weight, not bounce.** Ease out, settle without overshoot. Save a slight bounce for something the visitor physically threw or dragged.
+- **Animate only `transform` and `opacity`** for smoothness. Use `requestAnimationFrame` for anything frame by frame, and add `will-change` only where you've measured a problem.
+- **Type is size-specific.** In custom CSS, large headlines get tighter letter-spacing (about `-0.02em` to `-0.04em`) and tighter line-height (about `0.95`–`1.1`); body text stays near `0` letter-spacing with comfortable line-height (about `1.5`); small capitals labels get positive letter-spacing. Never one letter-spacing for all sizes. Build hierarchy from size, weight and line-height together, and size spacing in `rem` so it scales with the visitor's text size.
+- **Accessibility settings are signals, not off-switches:**
+  - `prefers-reduced-motion: reduce`: swap slides, parallax and springs for a short opacity cross-fade or the final state. Keep the feedback, lose the movement.
+  - `prefers-reduced-transparency: reduce`: make translucent or blurred surfaces solid.
+  - `prefers-contrast: more`: solid backgrounds and a clear border on cards and controls.
+
 ## How to write it
 
 - **Reuse the system.** Use the brand classes (`wrap`, `display`, `title`, `eyebrow` with its dot, `lede`, `kicker`, `btn btn-gold`, `text-link`, `chips`) and variables (`--ink`, `--cream`, `--paper`, `--champagne`, `--honey`, `--bronze`, `--ink-soft`, `--line`, `--gold-grad`, `--r-lg`, `--r-md`, `--shadow`). Never re-create a button or an eyebrow.

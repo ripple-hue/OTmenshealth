@@ -43,6 +43,14 @@ If you finish and the page has the same sections in the same order with the same
 - **The headline is the loudest thing in a campaign hero.** A visual can be big, but the offer line must still read first, on desktop and on a phone.
 - **Small print stays readable.** Terms, notes and labels are at least 13px, at full contrast for their background: dark text on gold or champagne, light text on ink. Never pale or semi-transparent text on gold.
 
+## Craft (adapted from Apple's design principles, via Emil Kowalski's apple-design skill, MIT)
+
+- **Decide the feeling, then reinforce it everywhere.** For OTMENS the feeling is calm and confident. Every choice of scale, spacing, motion and colour should serve it. Delight is the result of getting everything else right, never confetti added on top.
+- **Simplicity, not minimalism.** Remove what doesn't serve the page's purpose, but don't strip context people need: a price with its billing terms is simpler than a bare number. Every element earns its place, and the most important thing on each screen is the most obvious.
+- **Nothing is random.** Every spacing, size, alignment and timing value is a choice you could defend. Misaligned edges, uneven gaps and jittery motion read as carelessness, and carelessness is what "AI slop" looks like.
+- **Calm motion only.** No full-screen moving backgrounds, no slow looping or pulsing animation, no sudden jumps in brightness. Large things that move should move little.
+- **Soft edges where content meets floating elements.** Where content scrolls under the sticky nav or a sticky bar, prefer a soft fade over a hard 1px divider line.
+
 ## Never ship
 
 - Gradient text, neon, or purple-to-blue gradients

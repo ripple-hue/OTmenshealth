@@ -1,5 +1,7 @@
 # OTMENS site agent
 
+Full context for anyone (or any agent) picking this up: start with `AGENTS.md`, then `docs/CONTEXT.md`, `docs/CURRENT_STATE.md`, `docs/ROADMAP.md` and `docs/DECISIONS.md`.
+
 Two apps in one repo.
 
 **The public website** (`node server.js`): three pages, Home, Treatments and Membership.
@@ -28,7 +30,7 @@ Website service: `STUDIO_URL`, the address of the Studio. The website then shows
 
 ## How it stays safe
 
-- The agent edits a JSON document through a fixed section library (`src/render.js`). It cannot write HTML, CSS or code.
+- The agent edits a JSON document through a fixed section library (`src/render.js`, described to the agent by `SPEC` in `src/guard.js`): 15 section types, layout variants and four background themes. It cannot write HTML, CSS or code.
 - `src/guard.js` checks every draft in code: section library only, protected areas untouched, every link and image resolves, health-claim rules, brand voice limits, every page renders. A failing draft is sent back to the agent and never reaches Jacob as approvable.
 - Only the Approve and Push buttons change what is stored or live. The agent has no access to either.
 - `/checkout`, `/portal` and `/intake` are placeholders the agent cannot create, edit or remove.

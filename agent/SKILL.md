@@ -73,7 +73,7 @@ When Jacob asks for a promotion or campaign, draft it in the same turn. He shoul
    - **Site-wide campaign styling** in global CSS, so every page shows the campaign: at least the announcement bar, plus touches such as the nav, buttons or band colours.
    - **The offer where people decide:** the pricing cards on the membership page, and a promo band or custom offer section on the home page.
    - **A dedicated landing page** with a real composition: a custom offer section, a statement band, contrast between bands and a strong close, not a header and a card.
-   - **A complete path:** every campaign surface leads to the landing page or the offer, and the landing page leads to one action (see the flow-building skill).
+   - **A complete path:** every campaign surface leads to the landing page or the offer, and the landing page leads to one action. The nav button becomes that action too (see the flow-building skill).
    - **An FAQ entry with the terms** in plain words.
    Build the campaign around one visual idea and carry it through every surface. A big offer is not urgency: no countdown timers or "ending soon" pressure unless the end date is real and stated.
 4. **What it must not touch:** checkout, portal, intake, clinical content. If the price at checkout has to change, say so once in `needs_from_jacob`.

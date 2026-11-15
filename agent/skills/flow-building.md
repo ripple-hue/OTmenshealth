@@ -38,6 +38,7 @@ Forms, quizzes that store answers, logins, payment or intake steps. Medical ques
 - **Match the promise.** The page a button opens must deliver what the button said. "Choose Gold" lands on Gold, not on the top of a general page.
 - **Shortest path to a plan.** From any page, the membership page is at most one click away.
 - **Campaigns are funnels.** Every campaign surface points to the landing page or the offer, and the offer points to the plan's checkout link.
+- **One action, everywhere, during a campaign.** The nav button (`navCta`) is on every screen, so it is part of the campaign: give it the same label and destination as the campaign's primary button ("Choose Gold" → the Gold offer). Use one label for that action across the hero, promo band, landing page and close. Not "Choose Gold" in one place, "See the Gold offer" in another and "Become a member" in the nav.
 - **Clean up.** When you remove a page, remove or redirect every link to it.
 
 ## Checklist
@@ -46,3 +47,4 @@ Forms, quizzes that store answers, logins, payment or intake steps. Medical ques
 - Does every page end with a clear next step?
 - Does every button's destination match its label?
 - Is anything in the nav that doesn't move people forward?
+- During a campaign: do the nav button and every campaign button say the same thing and go to the same place?

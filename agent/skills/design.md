@@ -39,6 +39,9 @@ If you finish and the page has the same sections in the same order with the same
 - Brand tokens only. Bold means composition and scale, never new colours, fonts or effects.
 - Generous space. Crowding reads as cheap.
 - The italic gold serif accent is the brand's signature. One per headline, never decoration.
+- **Design the phone version on purpose, not by collapse.** On a phone, the idea's key visual (a giant figure, a card, a photo) sits directly with the headline: above it, or immediately after it, before the body copy and buttons. Never let it fall to the bottom of a section after the buttons, and never leave an empty gap taller than about 80px where a desktop column used to be. If the visual doesn't work small, make a smaller phone version of it rather than pushing it down.
+- **The headline is the loudest thing in a campaign hero.** A visual can be big, but the offer line must still read first, on desktop and on a phone.
+- **Small print stays readable.** Terms, notes and labels are at least 13px, at full contrast for their background: dark text on gold or champagne, light text on ink. Never pale or semi-transparent text on gold.
 
 ## Never ship
 
@@ -64,6 +67,8 @@ Use the image library you are given. When new images can be generated, write pro
 ## Checklist
 
 - Squint test: the primary action is the most visible thing above the fold on mobile.
+- Phone test: in every custom section at 375px, the key visual is beside the headline, not after the buttons, and there is no large empty space.
+- Small-print test: every piece of small text is at least 13px and clearly readable on its background.
 - Thumbnail test: for a large change, the page is unmistakably different at thumbnail size.
 - Brand test: with the photos removed, does it still read as OTMENS?
 - Nothing from "Never ship".

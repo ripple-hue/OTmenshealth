@@ -29,6 +29,8 @@ Go down the list only when the idea needs it. Custom code is for what the librar
 - **Semantic HTML.** One `h1` per page (the hero's). Headings in order. Real lists for lists, `<s>` for a struck-out old price.
 - **Accessible.** Every `<img>` has a meaningful `alt` (or `alt=""` if decorative). Text contrast stays strong: light text on `ink`, dark text on light bands. Interactive things are real links.
 - **Responsive.** Use `clamp()` for big type, CSS grid or flex for layout, and a `@media (max-width: 900px)` rule that stacks any columns. Nothing has a fixed width wider than 375px.
+- **Set the phone order yourself.** When columns stack, decide the order with `grid-template-areas` or `order` so the key visual lands right after the headline (see the design skill), and remove any desktop-only height, `min-height` or padding that would leave an empty gap.
+- **Readable small text.** `font-size` of at least `0.8125rem` (13px) for any text, and no `opacity` below 1 or pale `rgba()` colours on text that sits on gold or champagne.
 - **Small and scoped.** Name classes after what they are (`.offer`, `.offer-price`), keep custom CSS short, and keep site-wide CSS to deliberate changes, not overrides of everything.
 - **Motion.** CSS transitions and one `@keyframes` animation at most per page, always with a `@media (prefers-reduced-motion: reduce)` rule that turns it off.
 - **The first section.** The nav floats over the top 90px of the first section of a page, so give a first custom section at least 150px of top padding. Set `dark: true` on a dark custom hero so the nav switches to its dark style.
@@ -41,6 +43,7 @@ Your draft is checked in code. If it comes back with errors, fix exactly what ea
 ## Checklist
 
 - No horizontal scroll at 375px, and nothing overlaps or clips at 375px or 1280px.
+- At 375px, each custom section reads in the right order (headline, key visual, copy, button) with no large empty gaps.
 - Every link resolves and every image is in the library.
 - Only brand colours and fonts.
 - The page still works and reads correctly if your custom CSS failed to load.

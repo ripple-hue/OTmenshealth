@@ -23,6 +23,7 @@ Match the voice examples in the brand guide before anything in this skill. In sh
 - When there is an offer, show the old price and the new price together, and say the condition in the same breath: "$1,795 for the year, down from $2,388, when you pay annually."
 - Every promotion states its terms and end date in plain words near the button.
 - A promotion makes the price better. It never makes the medicine sound better.
+- A campaign adds to the brand's standing facts; it doesn't replace them. Gold keeps its "Most popular" badge; the campaign goes in the plan's `offer` line and the announcement bar.
 
 ## Buttons and links
 

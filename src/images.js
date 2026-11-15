@@ -6,8 +6,34 @@ const crypto = require('crypto');
 const { jsonSchemaOutputFormat } = require('@anthropic-ai/sdk/helpers/json-schema');
 
 const BASE = 'https://api.higgsfield.ai';
-const MODEL = process.env.HF_IMAGE_MODEL || 'higgsfield-ai/soul/standard';
-const ASPECTS = ['1:1', '4:3', '3:4', '3:2', '2:3', '5:4', '4:5', '16:9', '9:16', '21:9'];
+// Marketing Studio 2.5 Flare: campaign imagery from a prompt, optionally guided by product reference photos.
+// (SOUL, tried first, is a portrait and fashion model and made product still lifes look like 3D mockups.)
+const MODEL = process.env.HF_IMAGE_MODEL || 'marketing-studio/image/flare';
+const ASPECTS = ['1:1', '3:2', '2:3', '4:3', '3:4', '16:9', '9:16', '21:9'];
+const ASPECT_ALIASES = { '4:5': '3:4', '5:4': '4:3' };
+const MAX_REFERENCES = 3;
+
+// Request bodies differ per model; each takes the prompt, an aspect ratio and public reference URLs.
+const BODIES = {
+  'marketing-studio/image/flare': ({ prompt, aspect, refs }) => ({
+    prompt, aspect_ratio: aspect, enhance_prompt: false,
+    resolution: process.env.HF_IMAGE_RESOLUTION || '2k',
+    quality: process.env.HF_IMAGE_QUALITY || 'high',
+    ...(refs.length ? { image_urls: refs } : {}),
+  }),
+  // The live SOUL API accepts 720p or 1080p (its published spec still lists 2K and 4K). No references.
+  'higgsfield-ai/soul/standard': ({ prompt, aspect }) => ({ prompt, aspect_ratio: aspect, resolution: process.env.HF_IMAGE_RESOLUTION || '1080p' }),
+};
+
+// Library images are referenced by site path; Higgsfield needs a public URL for each.
+// /img/ files are served by both apps; /media/ files by the Studio itself.
+function publicUrl(sitePath) {
+  const studio = process.env.STUDIO_PUBLIC_URL || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
+  const site = (process.env.LIVE_SITE_URL || '').replace(/\/$/, '');
+  if (/^\/media\/[\w.-]+$/.test(sitePath)) return studio ? studio + sitePath : null;
+  if (/^\/img\/[\w.-]+$/.test(sitePath)) return (site || studio) ? (site || studio) + sitePath : null;
+  return null;
+}
 const MAX_PER_REQUEST = Number(process.env.HF_MAX_IMAGES_PER_REQUEST) || 3;
 const POLL_MS = 2500;
 const TIMEOUT_MS = 180000;
@@ -45,12 +71,14 @@ async function hf(pathname, opts = {}) {
 }
 
 // Submits one image, waits for it, and returns its temporary URL on Higgsfield's CDN.
-async function generate({ prompt, aspect }) {
+async function generate({ prompt, aspect, references = [] }) {
+  const a = ASPECT_ALIASES[aspect] || aspect;
+  const refs = references.slice(0, MAX_REFERENCES).map(publicUrl).filter(Boolean);
+  const body = (BODIES[MODEL] || BODIES['marketing-studio/image/flare'])({ prompt, aspect: ASPECTS.includes(a) ? a : '3:4', refs });
   const submitted = await hf('/' + MODEL, {
     method: 'POST',
     headers: { 'Idempotency-Key': crypto.randomUUID() },
-    // The live API accepts 720p or 1080p (its published spec still lists 2K and 4K).
-    body: JSON.stringify({ prompt, aspect_ratio: ASPECTS.includes(aspect) ? aspect : '4:5', resolution: process.env.HF_IMAGE_RESOLUTION || '1080p' }),
+    body: JSON.stringify(body),
   });
   const id = submitted.request_id;
   if (!id) throw new Error('Higgsfield did not return a request id.');
@@ -77,43 +105,63 @@ async function download(url) {
   return { buffer: Buffer.from(await res.arrayBuffer()), ext };
 }
 
-// The rules every image must meet before it can appear on the site. Checked by a model looking at the image.
-const REVIEW_RULES = `You check images for OTMENS, a regulated U.S. men's telehealth brand, before they appear on its website. An image passes only if ALL of these hold:
-1. No bodies as the subject: no shirtless or partly clothed people, no torsos, abs, muscles or physique shots, nothing that reads as a before-and-after or a body comparison.
-2. No needles, syringes, injections, IV lines, blood, or anything clinical or medical-procedure-like.
-3. No readable text, letters, numbers, logos or watermarks, except a small "OT" label on a product bottle.
-4. No recognisable real person, celebrity or fake doctor or clinician. People, if present, are small, not the focus, fully clothed, doing endurance sport or outdoors, faces not prominent.
-5. On brand: warm, quiet-luxury editorial look (cream, champagne, gold, bronze, ink, stone, warm side-light). Not neon, not cartoonish, not cheap stock.
-6. Matches its stated purpose.
-Be strict: when unsure about rules 1 to 4, fail it.`;
+// What every image must meet before it can appear on the site, judged by a model looking at it.
+// Safety rules are pass/fail. Quality is scored against a real OTMENS photograph, because an image
+// can break no rule and still look cheap, fake or off-brand.
+const MIN_SCORE = Number(process.env.HF_MIN_IMAGE_SCORE) || 7;
+const REVIEW_RULES = `You are the photo editor for OTMENS, a regulated U.S. men's telehealth brand with a quiet-luxury look. You decide whether a newly generated image may appear on its website. You are strict: a weak image hurts the brand more than no image.
+
+Hard rules. Any failure means ok=false:
+1. No bodies as the subject: no shirtless or partly clothed people, torsos, abs, muscles, physique shots, mirrors, scales, tape measures, or anything that reads as a before-and-after or body comparison.
+2. No needles, syringes, injections, IV lines, blood, pills being swallowed, lab coats, doctors, clinics or medical procedures.
+3. No readable text, letters, numbers, logos or watermarks, except a small "OT" on a product label.
+4. No recognisable real person, celebrity or anyone presented as a clinician. People, if present, are fully clothed, not posed for the camera, and their faces are not the focus.
+
+Quality, scored 1 to 10 (10 = a top agency would run it as a campaign hero):
+- It looks like a real photograph by a skilled photographer: real materials, real light, natural imperfection. Not a 3D render, product mockup, stock photo or glossy AI image. Plastic-looking products, impossible reflections, perfectly smooth surfaces and flat even lighting score 4 or less.
+- Everything is physically plausible: props rest on surfaces, plants grow from somewhere sensible, ribbons and fabric hang with gravity, objects have believable scale.
+- It belongs with the OTMENS house style shown in the reference photograph: considered composition, warm directional light, rich but restrained colour (ink, cream, champagne, gold, bronze, stone, muted natural tones), editorial calm.
+- If an OT product appears, it matches the product reference photo when one is given (shape, finish, cap, label), or otherwise the brand's real products: a matte or frosted bottle with a gold cap and a cream paper label with a serif "OT". A generic tub or a gold sticker label scores 4 or less.
+- It does not need to copy the house reference's colours exactly: a darker, moodier or more seasonal grade is fine if it is still warm, restrained and editorial.
+- It suits its stated purpose and leaves room for text where the purpose needs it.
+
+Set ok=true only if every hard rule passes and the score is ${MIN_SCORE} or more.`;
 
 const REVIEW_SCHEMA = {
   type: 'object',
   properties: {
     ok: { type: 'boolean' },
+    score: { type: 'integer' },
     problems: { type: 'array', items: { type: 'string' } },
     description: { type: 'string' },
   },
-  required: ['ok', 'problems', 'description'],
+  required: ['ok', 'score', 'problems', 'description'],
   additionalProperties: false,
 };
 
-async function review(client, model, url, purpose) {
+const HOUSE_REFERENCE = '/img/longevity.jpg'; // a real OTMENS photograph that shows the standard
+
+async function review(client, model, url, purpose, references = []) {
+  const house = publicUrl(HOUSE_REFERENCE);
+  const products = references.slice(0, MAX_REFERENCES).map(publicUrl).filter(Boolean);
+  const content = [];
+  if (house) content.push({ type: 'text', text: 'House style reference: an OTMENS photograph that shows the standard of light, palette and finish. Judge style against it, not the specific product in it.' }, { type: 'image', source: { type: 'url', url: house } });
+  for (const p of products) content.push({ type: 'text', text: 'Product reference: the new image was asked to reproduce the OT product in this photo. Judge the product against this one.' }, { type: 'image', source: { type: 'url', url: p } });
+  content.push(
+    { type: 'text', text: 'The new image to judge:' },
+    { type: 'image', source: { type: 'url', url } },
+    { type: 'text', text: `Purpose: ${purpose}\nReturn ok, the quality score, the problems (empty if none; be specific), and a one-line description of what the new image shows, for the site's image library.` },
+  );
   const res = await client.messages.parse({
     model,
-    max_tokens: 2000,
-    output_config: { effort: 'low', format: jsonSchemaOutputFormat(REVIEW_SCHEMA) },
+    max_tokens: 3000,
+    output_config: { effort: 'medium', format: jsonSchemaOutputFormat(REVIEW_SCHEMA) },
     system: REVIEW_RULES,
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'url', url } },
-        { type: 'text', text: `Purpose: ${purpose}\nReturn ok, the problems (empty if none), and a one-line description of what the image shows, for a website image library.` },
-      ],
-    }],
+    messages: [{ role: 'user', content }],
   });
-  if (res.stop_reason === 'refusal' || !res.parsed_output) return { ok: false, problems: ['The image review did not complete.'], description: '' };
-  return res.parsed_output;
+  if (res.stop_reason === 'refusal' || !res.parsed_output) return { ok: false, score: 0, problems: ['The image review did not complete.'], description: '' };
+  const v = res.parsed_output;
+  return { ...v, ok: v.ok && v.score >= MIN_SCORE }; // the threshold is enforced here, not trusted to the model
 }
 
 // Generates, reviews and stores each requested image. Never throws; failures come back per image.
@@ -124,13 +172,14 @@ async function createImages(requests, { client, model, saveMedia, onProgress = (
     try {
       if (!r || typeof r.prompt !== 'string' || r.prompt.trim().length < 20) throw new Error('Each image needs a descriptive prompt.');
       onProgress(`Generating ${label}`);
-      const { url, requestId } = await generate({ prompt: r.prompt.trim(), aspect: r.aspect });
+      const references = Array.isArray(r.references) ? r.references.filter((p) => typeof p === 'string') : [];
+      const { url, requestId } = await generate({ prompt: r.prompt.trim(), aspect: r.aspect, references });
       onProgress(`Checking ${label}`);
-      const verdict = await review(client, model, url, r.purpose || 'campaign image');
-      if (!verdict.ok) { out.push({ ok: false, purpose: r.purpose, reason: 'Failed the image check: ' + (verdict.problems.join('; ') || 'not suitable') }); continue; }
+      const verdict = await review(client, model, url, r.purpose || 'campaign image', references);
+      if (!verdict.ok) { out.push({ ok: false, purpose: r.purpose, score: verdict.score, url, reason: `Failed the image check (quality ${verdict.score}/10): ` + (verdict.problems.join('; ') || 'not suitable') }); continue; }
       const { buffer, ext } = await download(url);
       const saved = saveMedia(buffer, ext, { prompt: r.prompt, purpose: r.purpose || '', alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect, requestId });
-      out.push({ ok: true, path: saved.path, purpose: r.purpose, alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect });
+      out.push({ ok: true, path: saved.path, purpose: r.purpose, score: verdict.score, alt: r.alt || verdict.description, description: verdict.description, aspect: r.aspect });
     } catch (e) {
       out.push({ ok: false, purpose: r && r.purpose, reason: e.message });
     }
@@ -138,4 +187,4 @@ async function createImages(requests, { client, model, saveMedia, onProgress = (
   return out;
 }
 
-module.exports = { enabled, createImages, generate, review, download, MAX_PER_REQUEST, ASPECTS, MODEL };
+module.exports = { enabled, createImages, generate, review, download, publicUrl, MAX_PER_REQUEST, MAX_REFERENCES, ASPECTS, MODEL };

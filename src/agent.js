@@ -122,7 +122,7 @@ const TOOL = {
 
 const IMAGE_TOOL = {
   name: 'generate_images',
-  description: 'Generate new on-brand photographs for this draft, before calling respond_to_jacob. Each image is generated, then checked against the brand and health-ad rules; only images that pass come back, with a /media/... path to use. Costs money: make only images the idea needs.',
+  description: 'Generate new campaign photographs for this draft, before calling respond_to_jacob. Each image is generated, then checked against the health-ad rules and scored for quality against the OTMENS house style; only images that pass come back, with a /media/... path to use. A failed image can be retried once with a better prompt that fixes the stated problems. Costs money: make only images the idea needs.',
   input_schema: {
     type: 'object',
     properties: {
@@ -135,6 +135,10 @@ const IMAGE_TOOL = {
             prompt: { type: 'string', description: 'The full image prompt, written from the imagery skill.' },
             aspect: { type: 'string', enum: images.ASPECTS },
             alt: { type: 'string', description: 'Alt text for the image on the site.' },
+            references: {
+              type: 'array', maxItems: images.MAX_REFERENCES, items: { type: 'string' },
+              description: 'Only when the image shows an OT product: 1 to 3 image-library paths (e.g. "/img/longevity.jpg") whose product the new image must reproduce. Leave out for scenes without the product.',
+            },
           },
           required: ['purpose', 'prompt', 'aspect', 'alt'],
         },
@@ -303,14 +307,14 @@ async function run({ message, rejected, draft, current, memory, version, history
         ? await images.createImages(batch, { client, model: MODEL, saveMedia: store.saveMedia, onProgress })
         : [];
       made.push(...results.filter((r) => r.ok));
-      const lines = results.map((r) => (r.ok ? `- OK ${r.path} (${r.aspect || '4:5'}) for "${r.purpose}". Shows: ${r.description}. Suggested alt: ${r.alt}` : `- FAILED for "${r.purpose}": ${r.reason}`));
+      const lines = results.map((r) => (r.ok ? `- OK ${r.path} (${r.aspect}, quality ${r.score}/10) for "${r.purpose}". Shows: ${r.description}. Suggested alt: ${r.alt}` : `- FAILED for "${r.purpose}": ${r.reason}`));
       if (asked.length > batch.length) lines.push(`- ${asked.length - batch.length} image(s) not made: the limit is ${images.MAX_PER_REQUEST} new images per request. Use the image library for the rest.`);
       messages.push({ role: 'assistant', content: res.content });
       messages.push({
         role: 'user',
         content: [{
           type: 'tool_result', tool_use_id: imageCall.id,
-          content: `${lines.join('\n') || '- No images were made.'}\nUse the OK images by their exact paths (in "image" fields, <img src> or CSS url()). Do not refer to failed ones. Now call respond_to_jacob with the draft.`,
+          content: `${lines.join('\n') || '- No images were made.'}\nUse the OK images by their exact paths (in "image" fields, <img src> or CSS url()). Never use a failed one. If an image the idea depends on failed and the limit allows, you may call generate_images once more with a prompt that fixes the stated problems; otherwise carry on with the library and call respond_to_jacob with the draft.`,
         }],
       });
       continue;

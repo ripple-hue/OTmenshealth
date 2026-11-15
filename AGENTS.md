@@ -9,7 +9,7 @@ This is a proof of concept for **OTMENS**, a men's telehealth membership: an AI 
 3. `docs/ROADMAP.md`: prioritised next work with acceptance criteria.
 4. `docs/DECISIONS.md`: why things are the way they are.
 
-The agent's own instructions are `agent/SKILL.md` (the core: limits, campaigns, learning), its four skills in `agent/skills/` (`copywriting.md`, `design.md`, `flow-building.md`, `development.md`) and `brand/brand-guide.md`. Changing any of them changes how the live agent behaves. To fix a kind of problem, edit the skill it belongs to: weak copy in copywriting, layout in design, links and journeys in flow building, code quality in development.
+The agent's own instructions are `agent/SKILL.md` (the core: limits, campaigns, learning), its five skills in `agent/skills/` (`copywriting.md`, `design.md`, `flow-building.md`, `development.md`, `imagery.md`) and `brand/brand-guide.md`. Changing any of them changes how the live agent behaves. To fix a kind of problem, edit the skill it belongs to: weak copy in copywriting, layout in design, links and journeys in flow building, code quality in development, photographs in imagery. Image generation spends the Higgsfield API balance: test with one image at a time.
 
 ## Rules
 

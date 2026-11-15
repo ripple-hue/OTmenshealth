@@ -8,6 +8,7 @@ Snapshot as of 15 November 2026, at commit `fd47950` on `main`, deployed to both
 
 - **The agent can write code.** A new `custom` section type holds the agent's own HTML and section-scoped CSS, and can replace the home hero. A site-wide `global.css` lets it restyle every page. Both are sanitised by `src/code.js` and checked by `src/guard.js` (see "The checks"). Campaigns are now instructed to be takeovers: custom campaign hero, site-wide styling, offer on the plan cards, a landing page.
 - **The agent has four skills.** `agent/skills/copywriting.md`, `design.md`, `flow-building.md` and `development.md`, loaded after the core `agent/SKILL.md`. Each reply lists the skills it used, shown as tags in the Studio chat.
+- **The agent generates campaign images (added later on 15 November; see the commit that follows `fd47950`).** New tool `generate_images` (in `src/agent.js`): the agent writes prompts from the new imagery skill (`agent/skills/imagery.md`), and `src/images.js` sends each one to Higgsfield (model `higgsfield-ai/soul/standard`, 1080p), has Claude review the result against the image rules (no bodies, needles, readable text or real people; on brand; fits its purpose), and saves passing images to `DATA_DIR/media/` with an index. The agent then uses them by `/media/...` path like any library image. At most 3 new images per request (`HF_MAX_IMAGES_PER_REQUEST`). The Studio serves `/media/*` publicly; the website proxies `/media/*` from the Studio and caches it in memory. Generated images join the image library for later drafts. The Studio shows live progress ("Generating image 1 of 2") and thumbnails of new images in the chat, with an "Images" skill tag. Tested with one real image: 19 s to generate, 11 s to review, passed, on brand (a 2048×1152 PNG of about 1.5 MB). Not yet tested inside a full agent request.
 - **Skills tuned after the live test.** Design and development now require a deliberate phone layout (the key visual stays with the headline, no empty gaps) and readable small print (13px or more, full contrast). Flow building requires the nav button to match the campaign's one action. Copywriting keeps Gold's "Most popular" badge during campaigns. Not yet re-run with the live agent.
 - **Tested with the real agent.** "Run a Black Friday sale" produced a full takeover that passed every check and went live as version 2 (see "What has been tested"). Version 2 survived a Studio redeploy.
 
@@ -45,9 +46,10 @@ src/render.js        Section library: one render function per section type (incl
 src/code.js          Agent-written code: HTML sanitiser, CSS checks (palette, fonts, URLs), CSS scoping for custom sections.
 src/guard.js         SPEC (section docs the agent sees), themes, variants, validate(), diff().
 src/agent.js         System prompt assembly (core + four skills + brand guide + library), the Claude call, edit operations, repair loop.
-src/store.js         File-based store: state.json plus v1.json, v2.json, ... in DATA_DIR.
+src/store.js         File-based store: state.json plus v1.json, v2.json, ... and media/ (generated images and their index) in DATA_DIR.
+src/images.js        Image generation: Higgsfield API client, Claude image review, download and save.
 agent/SKILL.md       The agent's core instructions: brand, hard limits, size of the ask, campaigns, self-review, learning.
-agent/skills/        The four skills: copywriting.md, design.md, flow-building.md, development.md.
+agent/skills/        The five skills: copywriting.md, design.md, flow-building.md, development.md, imagery.md.
 brand/brand-guide.md OTMENS facts, look, voice, image direction, promotion rules.
 content/site.json    Version 1 of the site (the seed). Three pages.
 test/agent-code.js   `npm test`: a good campaign takeover and 26 bad drafts through applyOps, validate and render. No API key needed.
@@ -152,6 +154,7 @@ Writes are atomic (temp file then rename). There is no database, no locking beyo
 | `POST /api/approve`, `/discard`, `/push` (`{n}`), `/restore` (`{n}`), `/forget` (`{id}`), `/reset` | yes | Version and memory actions. `reset` wipes everything back to version 1 |
 | `GET /view/{live,draft,head,vN}/<page path>` | yes | Renders a version. `?hl=0` turns off change highlighting, `?scroll=0` stops auto-scroll to the first change |
 | `GET /api/published` | **none** | The live version as JSON, for the public website |
+| `GET /media/<file>` | **none** | A generated image from `DATA_DIR/media`, for previews and the website (which proxies it) |
 | static files under `public/` | none | CSS, fonts, images |
 
 ### The public website
@@ -160,7 +163,7 @@ Writes are atomic (temp file then rename). There is no database, no locking beyo
 
 ### Configuration
 
-Studio service: `ANTHROPIC_API_KEY` (required for the agent), `STUDIO_PASSCODE` (default `otmens`), `DATA_DIR` (point at a mounted volume), `LIVE_SITE_URL` (for the "Live site" link), `AGENT_MODEL`, `AGENT_EFFORT`, `AGENT_BASE_URL`, `PORT`.
+Studio service: `ANTHROPIC_API_KEY` (required for the agent), `STUDIO_PASSCODE` (default `otmens`), `DATA_DIR` (point at a mounted volume), `LIVE_SITE_URL` (for the "Live site" link), `AGENT_MODEL`, `AGENT_EFFORT`, `AGENT_BASE_URL`, `PORT`. Images: `HF_API_KEY` (Higgsfield API key; without it the agent is told it cannot make images), optional `HF_IMAGE_MODEL` (default `higgsfield-ai/soul/standard`), `HF_IMAGE_RESOLUTION` (default `1080p`), `HF_MAX_IMAGES_PER_REQUEST` (default 3).
 
 Website service: `STUDIO_URL`, `PORT`.
 
@@ -218,7 +221,7 @@ Artefacts from these tests (screenshots, a 2 min 16 s screen recording) were del
 
 1. **Fixed and verified (15 November 2026): Studio data loss on redeploy.** Cause: `DATA_DIR=/data` was set, but the project had no volume, so `/data` was inside the container and wiped on every deploy. A 500 MB volume is now attached to the Studio at `/data`. Verified: version 2 was live, the Studio was redeployed, and it came back with version 2 still live and the campaign intact.
 2. **Fixed and verified (15 November 2026): public website following the Studio.** Cause: `STUDIO_URL` was never set on the website service, so the public site always served the bundled `content/site.json`. Verified: pushing version 2 put the Black Friday campaign on the public URL, including the new `/black-friday` page.
-3. **No image generation.** The brief requires campaigns to create images. The agent can only reuse five photos, and there is no image skill. Checked 15 November 2026: no Higgsfield code or credentials exist in the app or in Railway; the Higgsfield MCP server is connected only to Claude Code sessions, not to the deployed agent; the account is on the free plan with 1.45 credits. Its best model (`gpt_image_2_6`) needs a paid plan. `nano_banana_2` and `z_image` worked on the free plan. See roadmap task 6.
+3. **Image generation: built, tested with one image, not yet tested in a full agent request.** Uses the Higgsfield API (a separate prepaid dollar balance, not the higgsfield.ai website plan; $5 added 15 November 2026). The key is the Studio variable `HF_API_KEY` (one combined `id:secret` value). The API's published OpenAPI spec lists resolutions `2K`/`4K`, but the live API only accepts `720p`/`1080p`. Generated images are PNGs of about 1.5 MB, heavier than the library JPEGs. The image check is a model review, not a guarantee. Generated images are never deleted except by "Reset the demo".
 4. **The bold redesign replaced Jacob's tagline** ("Own Your Health."). Undecided whether to lock it.
 5. **Health-claim checking is a phrase list.** It catches obvious wording but misses rephrasing (for example "drop two sizes"). It is not a legal review.
 6. **Authentication is minimal.** One shared passcode; the cookie is a hash of the passcode (no expiry rotation, no logout); any signed-in user can `reset` everything; no rate limiting.
@@ -262,7 +265,7 @@ The brand was rebuilt from screenshots. Confirm these with Jacob before anything
 | Looks and sounds like OTMENS | Mostly; brand from screenshots, tagline replaced in the redesign |
 | Learns from rejection, visibly | Built; production storage fixed and verified 15 Nov. A rejection cycle has not been re-run since |
 | Campaigns touch every relevant surface | Delivered |
-| Campaigns create images | Not delivered |
+| Campaigns create images | Built 15 Nov; one real image generated and passed the check; not yet seen in a full campaign |
 | Rarely needs correcting | Unproven |
 
 **Against the owner's wider framing ("front-end developer tool with full design, copywriting, flow building and development capabilities of a large-scale company CTO"): roughly 25 percent before 15 November; an estimated 40 percent after the code and skills work, if the live agent uses it well (untested).** The agent can now build new visual components in HTML and CSS, restyle the whole site, and plan page-to-page flows. It still cannot write JavaScript, build forms, quizzes that store answers or integrations, change design tokens, or make architecture, analytics, performance or platform decisions. It works only on the three-page demo copy.

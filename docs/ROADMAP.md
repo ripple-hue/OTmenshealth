@@ -41,6 +41,8 @@ Ordered by priority. Each task says why it matters, what done looks like, and wh
 
 ### 6. Generate campaign images with Higgsfield
 
+**Status: built 15 November 2026** (`generate_images` tool, `src/images.js`, imagery skill, model review of each image). Remaining: confirm a full campaign request uses it well, and consider converting PNGs to smaller JPEG or WebP files.
+
 - **Why.** Brief requirement.
 - **Approach.** Add an agent capability to request an image with a prompt built from the image direction in `brand/brand-guide.md`. Generate server-side, review with a check (no people's bodies, no text in image, no needles, on-palette), store the file under `DATA_DIR`, and add it to the image library for that draft. Must never produce before-and-after or body-focused images. The Higgsfield API, not the MCP server, is needed for a deployed app; its credentials go in Railway variables.
 - **Done when.** "Run a Black Friday sale" produces a draft with a new on-brand campaign image, inside the one-minute budget or with a clear progress state.

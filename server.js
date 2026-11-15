@@ -13,6 +13,7 @@ const TYPES = {
   '.js': 'text/javascript; charset=utf-8',
   '.jpg': 'image/jpeg',
   '.png': 'image/png',
+  '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
 };
@@ -37,16 +38,34 @@ async function loadSite() {
   return cache.site;
 }
 
-const send = (res, code, type, body) => {
-  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' });
+const send = (res, code, type, body, headers = {}) => {
+  res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', ...headers });
   res.end(body);
 };
+
+// Images the agent generated live on the Studio's volume. Fetch them from there and keep a small
+// in-memory copy; file names are never reused, so a cached copy is always correct.
+const mediaCache = new Map();
+async function sendMedia(res, name) {
+  if (!STUDIO_URL || !/^[\w.-]+$/.test(name)) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+  let hit = mediaCache.get(name);
+  if (!hit) {
+    const r = await fetch(`${STUDIO_URL}/media/${name}`, { signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+    hit = { type: r.headers.get('content-type') || 'application/octet-stream', body: Buffer.from(await r.arrayBuffer()) };
+    if (mediaCache.size > 40) mediaCache.delete(mediaCache.keys().next().value);
+    mediaCache.set(name, hit);
+  }
+  send(res, 200, hit.type, hit.body, { 'Cache-Control': 'public, max-age=31536000, immutable' });
+}
 
 http
   .createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname.replace(/\/+$/, '') || '/';
     try {
+      const media = p.match(/^\/media\/([\w.-]+)$/);
+      if (media) return await sendMedia(res, media[1]);
       const site = await loadSite();
       const key = Object.keys(site.pages).find((k) => site.pages[k].path === p);
       if (key) return send(res, 200, 'text/html; charset=utf-8', renderPage(site, key));

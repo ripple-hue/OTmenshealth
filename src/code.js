@@ -78,7 +78,7 @@ function parseHtml(html, { mapHref = (h) => h } = {}) {
       if (name === 'src') {
         if (tag !== 'img') { problems.push('uses src outside an <img>'); continue; }
         images.push(value.trim());
-        if (!/^\/img\/[\w.-]+$/.test(value.trim())) continue;
+        if (!/^\/(img|media)\/[\w.-]+$/.test(value.trim())) continue;
       }
       if (name === 'style') {
         const cssProblems = checkCss(value, { inline: true });
@@ -132,7 +132,7 @@ function checkCss(css, { inline = false } = {}) {
   if (/@import|@font-face|@namespace|@charset/i.test(s)) p.push('imports files or fonts, which is not allowed');
   if (/expression\s*\(|javascript:|behavior\s*:|-moz-binding/i.test(s)) p.push('contains script-like CSS');
   for (const u of s.matchAll(/url\(\s*["']?([^"')]*)["']?\s*\)/gi)) {
-    if (!/^\/img\/[\w.-]+$/.test(u[1].trim())) p.push(`loads "${u[1]}", but only images from the library (/img/...) are allowed`);
+    if (!/^\/(img|media)\/[\w.-]+$/.test(u[1].trim())) p.push(`loads "${u[1]}", but only images from the image library (/img/... or /media/...) are allowed`);
   }
   for (const h of s.matchAll(/#([0-9a-f]{3,8})\b/gi)) {
     let hex = h[1].toLowerCase();

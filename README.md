@@ -37,7 +37,7 @@ Website service: `STUDIO_URL`, the address of the Studio. The website then shows
 
 ## Where things live
 
-- `agent/SKILL.md`: the agent's core instructions. `agent/skills/`: its four skills (copywriting, design, flow building, development). `brand/brand-guide.md`: the OTMENS brand guide.
+- `agent/SKILL.md`: the agent's core instructions. `agent/skills/`: its five skills (copywriting, design, flow building, development, imagery). `src/images.js`: campaign image generation through the Higgsfield API, with a review of every image. `brand/brand-guide.md`: the OTMENS brand guide.
 - `src/agent.js`: the Claude call, the edit operations and the repair loop.
 - `src/store.js`: versions, draft, chat and taste memory.
 - `studio/index.html`: the Studio screen.

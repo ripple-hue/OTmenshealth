@@ -11,6 +11,7 @@ const { renderPage, renderLocked, LOCKED } = require('./src/render');
 const { validate, diff } = require('./src/guard');
 const store = require('./src/store');
 const agent = require('./src/agent');
+const images = require('./src/images');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
@@ -18,10 +19,11 @@ const PORT = process.env.PORT || 4100;
 const PASSCODE = process.env.STUDIO_PASSCODE || 'otmens';
 const TOKEN = crypto.createHash('sha256').update('ot-studio:' + PASSCODE).digest('hex');
 const LIVE_SITE_URL = (process.env.LIVE_SITE_URL || '').replace(/\/$/, '');
-const TYPES = { '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+const TYPES = { '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.jpg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 
 store.init();
 let busy = false;
+let progress = ''; // what the agent is doing right now, shown under "Working on it"
 
 const send = (res, code, type, body, headers = {}) => {
   res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store', ...headers });
@@ -54,7 +56,9 @@ function publicState() {
     hasKey: !!process.env.ANTHROPIC_API_KEY,
     liveSiteUrl: LIVE_SITE_URL,
     model: agent.MODEL,
+    imagesEnabled: images.enabled(),
     busy,
+    progress: busy ? progress : '',
   };
 }
 
@@ -65,7 +69,7 @@ async function runAgent(message, rejected) {
   const current = store.version(s.head);
   let out;
   try {
-    out = await agent.run({ message, rejected, draft: s.draft, current, memory: s.memory, version: s.head, history: s.chat.slice(0, -1) });
+    out = await agent.run({ message, rejected, draft: s.draft, current, memory: s.memory, version: s.head, history: s.chat.slice(0, -1), onProgress: (t) => { progress = t; } });
   } catch (e) {
     if (!e.userFacing) console.error(e);
     s = store.state();
@@ -96,6 +100,7 @@ async function runAgent(message, rejected) {
     drafted, summary: drafted ? s.draft.summary : null, changes: out.changes || [],
     learned: learned.map((l) => l.rule), applied: out.lessons_applied || [],
     skills: (out.skills_used || []).filter((x) => agent.SKILLS.includes(x)),
+    images: out.images || [],
     needs: out.needs_from_jacob || [], declined: out.declined || [], failed: !!out.failed,
   });
   store.save(s);
@@ -109,6 +114,7 @@ const api = {
     if (!message) return { error: 'Type a message first.' };
     if (busy) return { error: 'The agent is still working on the last request.' };
     busy = true;
+    progress = 'Reading your request';
     const s = store.state();
     s.chat.push({ role: 'user', text: message, rejected: !!body.rejected, at: new Date().toISOString() });
     store.save(s);
@@ -216,6 +222,13 @@ http
         return send(res, 200, TYPES[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file), { 'Cache-Control': 'public, max-age=300' });
       }
       if (p === '/favicon.ico') return send(res, 204, 'image/x-icon', '');
+      // Generated images are public so the website can show them. Names are random and never reused.
+      const media = p.match(/^\/media\/([\w.-]+)$/);
+      if (media) {
+        const f = store.mediaFile(media[1]);
+        if (!f) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
+        return send(res, 200, TYPES[path.extname(f)] || 'application/octet-stream', fs.readFileSync(f), { 'Cache-Control': 'public, max-age=31536000, immutable' });
+      }
       if (p === '/api/published') {
         const s = store.state();
         return json(res, 200, { version: s.live, content: store.version(s.live) });

@@ -6,11 +6,14 @@
 const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
-const { validate, SPEC, THEME_DOC, GLOBAL_CSS_DOC, images, LOCKED } = require('./guard');
+const { validate, SPEC, THEME_DOC, GLOBAL_CSS_DOC, images: imageLibrary, LOCKED } = require('./guard');
+const images = require('./images');
+const store = require('./store');
 
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AGENT_EFFORT || 'medium';
 const MAX_REPAIRS = 2;
+const MAX_TURNS = 6; // model calls per request, including image rounds and repairs
 
 const file = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
 const clone = (v) => JSON.parse(JSON.stringify(v));
@@ -25,12 +28,12 @@ const IMAGE_NOTES = {
 
 // The agent's skills, in the order they are given to it. Each is a separate file in agent/skills/
 // so it can be improved on its own: copy problems go in copywriting.md, layout problems in design.md, and so on.
-const SKILLS = ['copywriting', 'design', 'flow-building', 'development'];
+const SKILLS = ['copywriting', 'design', 'flow-building', 'development', 'imagery'];
 const stripFrontmatter = (s) => s.replace(/^---[\s\S]*?---\n/, '');
 
 function systemPrompt() {
   const library = Object.entries(SPEC).map(([type, s]) => `- ${type}: ${s.doc} Required: ${s.req.join(', ')}.`).join('\n');
-  const imgs = images().map((i) => `- ${i}${IMAGE_NOTES[i] ? ': ' + IMAGE_NOTES[i] : ''}`).join('\n');
+  const imgs = imageLibrary().filter((i) => i.startsWith('/img/')).map((i) => `- ${i}${IMAGE_NOTES[i] ? ': ' + IMAGE_NOTES[i] : ''}`).join('\n');
   const skills = SKILLS.map((name) => stripFrontmatter(file('agent', 'skills', `${name}.md`))).join('\n\n---\n\n');
   return `${stripFrontmatter(file('agent', 'SKILL.md'))}
 
@@ -64,7 +67,9 @@ Field rules: \`href\` must be an existing page path (optionally with #anchor), a
 ## Image library
 ${imgs}
 
-You cannot generate new images in this version. Use the library. If a change really needs a new image, say so in \`needs_from_jacob\` and describe the shot.
+${images.enabled()
+  ? `You can also generate new images with the \`generate_images\` tool, at most ${images.MAX_PER_REQUEST} per request (see the imagery skill). Call it before \`respond_to_jacob\`, wait for the result, then use only the images it returns as OK, by their exact /media/... paths. Each image is checked before you get it; a failed one is simply not available. Images made for earlier drafts are listed with each message and can be reused at no cost.`
+  : 'You cannot generate new images right now (image generation is not set up). Use the library. If a change really needs a new image, say so in `needs_from_jacob` and describe the shot.'}
 
 ## Responding
 
@@ -85,7 +90,7 @@ Always answer by calling \`respond_to_jacob\` exactly once. Never answer in plai
 - \`changes\`: each visible change this turn, as {what, why}. Plain words. "why" is the marketing or brand reason.
 - \`lessons_learned\`: only when Jacob has just told you a preference, especially when he rejects a draft. Each is one specific, reusable rule in the imperative, about his taste, that would change a future draft. Not a note about this one change.
 - \`lessons_applied\`: taste-memory rules you actively followed this turn, quoted as saved.
-- \`skills_used\`: which of your four skills this turn's changes drew on: copywriting, design, flow-building, development.
+- \`skills_used\`: which of your skills this turn's changes drew on: ${SKILLS.join(', ')}.
 - \`needs_from_jacob\`: at most three things you need him to confirm or supply, one short sentence each. \`declined\`: anything you refused and why.
 
 Prefer drafting to asking. Only hold back a draft when you truly cannot tell what he wants.
@@ -107,11 +112,35 @@ const TOOL = {
       changes: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, why: { type: 'string' } }, required: ['what', 'why'] } },
       lessons_learned: { type: 'array', items: { type: 'string' } },
       lessons_applied: { type: 'array', items: { type: 'string' } },
-      skills_used: { type: 'array', items: { type: 'string', enum: ['copywriting', 'design', 'flow-building', 'development'] } },
+      skills_used: { type: 'array', items: { type: 'string', enum: SKILLS } },
       needs_from_jacob: { type: 'array', items: { type: 'string' } },
       declined: { type: 'array', items: { type: 'string' } },
     },
     required: ['message'],
+  },
+};
+
+const IMAGE_TOOL = {
+  name: 'generate_images',
+  description: 'Generate new on-brand photographs for this draft, before calling respond_to_jacob. Each image is generated, then checked against the brand and health-ad rules; only images that pass come back, with a /media/... path to use. Costs money: make only images the idea needs.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      images: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            purpose: { type: 'string', description: 'Where it goes and why, e.g. "Christmas campaign hero, right of the headline".' },
+            prompt: { type: 'string', description: 'The full image prompt, written from the imagery skill.' },
+            aspect: { type: 'string', enum: images.ASPECTS },
+            alt: { type: 'string', description: 'Alt text for the image on the site.' },
+          },
+          required: ['purpose', 'prompt', 'aspect', 'alt'],
+        },
+      },
+    },
+    required: ['images'],
   },
 };
 
@@ -189,17 +218,19 @@ function applyOps(base, ops, current) {
   return site;
 }
 
-function userTurn({ message, rejected, draft, current, memory, version }) {
+function userTurn({ message, rejected, draft, current, memory, version, generated = [] }) {
   const mem = memory.length ? memory.map((m) => `- ${m.rule}`).join('\n') : '(nothing saved yet)';
+  // Images made in earlier requests stay in the library; list the most recent so they can be reused.
+  const gen = generated.slice(-24).map((g) => `- ${g.path} (${g.aspect || '4:5'}): ${g.description} [made for: ${g.purpose}]`).join('\n');
   const open = draft
     ? `There is an open draft Jacob has not approved. Your operations apply to it.\n<open_draft_changes>\n${(draft.changes || []).map((c) => `- ${c.what}`).join('\n')}\n</open_draft_changes>\n<draft_site>\n${JSON.stringify(draft.content)}\n</draft_site>\n<current_site version="${version}">\n${JSON.stringify(current)}\n</current_site>`
     : `There is no open draft. Your operations start a new one from the current site.\n<current_site version="${version}">\n${JSON.stringify(current)}\n</current_site>`;
-  return `Today is ${new Date().toISOString().slice(0, 10)}.\n\n<taste_memory>\n${mem}\n</taste_memory>\n\n${open}\n\n<jacob${rejected ? ' rejected_the_draft="true"' : ''}>\n${message}\n</jacob>`;
+  return `Today is ${new Date().toISOString().slice(0, 10)}.\n\n<taste_memory>\n${mem}\n</taste_memory>\n\n${gen ? `<generated_images>\nImages made for earlier drafts, also in the image library:\n${gen}\n</generated_images>\n\n` : ''}${open}\n\n<jacob${rejected ? ' rejected_the_draft="true"' : ''}>\n${message}\n</jacob>`;
 }
 
 const historyText = (m) => (m.role === 'user' ? m.text : [m.text, m.summary && `(Draft: ${m.summary})`].filter(Boolean).join(' '));
 
-async function run({ message, rejected, draft, current, memory, version, history }) {
+async function run({ message, rejected, draft, current, memory, version, history, onProgress = () => {} }) {
   if (!process.env.ANTHROPIC_API_KEY) {
     const e = new Error('The agent has no API key yet. Add ANTHROPIC_API_KEY to this service and try again.');
     e.userFacing = true;
@@ -215,23 +246,29 @@ async function run({ message, rejected, draft, current, memory, version, history
     else if (messages.length || role === 'user') messages.push({ role, content: historyText(m) });
   }
   if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
-  messages.push({ role: 'user', content: userTurn({ message, rejected, draft, current, memory, version }) });
+  messages.push({ role: 'user', content: userTurn({ message, rejected, draft, current, memory, version, generated: store.listMedia() }) });
 
   const base = draft ? draft.content : current;
   let site = base;
   let out = null;
   let report = null;
 
-  for (let attempt = 0; attempt <= MAX_REPAIRS; attempt++) {
+  const canMakeImages = images.enabled();
+  const made = [];
+  let imageCalls = 0;
+  let attempt = 0;
+  for (let turn = 0; attempt <= MAX_REPAIRS && turn < MAX_TURNS; turn++) {
     let res;
     const request = {
       model: MODEL,
       max_tokens: 20000, // room for custom HTML and CSS; kept under the SDK's non-streaming limit
       output_config: { effort: EFFORT },
       system: [{ type: 'text', text: systemPrompt(), cache_control: { type: 'ephemeral' } }],
-      tools: [TOOL],
+      tools: canMakeImages ? [TOOL, IMAGE_TOOL] : [TOOL],
+      tool_choice: { type: 'auto', disable_parallel_tool_use: true }, // images first, then the answer
       messages,
     };
+    onProgress(turn === 0 ? 'Designing the change' : made.length && !out ? 'Building the draft with the new images' : 'Fixing what the checks found');
     try {
       try {
         // If a safety classifier declines the request, let the API retry it on a fallback model.
@@ -254,6 +291,31 @@ async function run({ message, rejected, draft, current, memory, version, history
     }
 
     if (res.stop_reason === 'refusal') return { message: 'I can’t help with that request.', ops: 0 };
+
+    // The agent asked for new images: make them, check them, and hand back the ones that passed.
+    const imageCall = res.content.find((b) => b.type === 'tool_use' && b.name === IMAGE_TOOL.name);
+    if (imageCall) {
+      const asked = Array.isArray(imageCall.input?.images) ? imageCall.input.images : [];
+      const room = Math.max(0, images.MAX_PER_REQUEST - imageCalls);
+      const batch = asked.slice(0, room);
+      imageCalls += batch.length;
+      const results = canMakeImages && batch.length
+        ? await images.createImages(batch, { client, model: MODEL, saveMedia: store.saveMedia, onProgress })
+        : [];
+      made.push(...results.filter((r) => r.ok));
+      const lines = results.map((r) => (r.ok ? `- OK ${r.path} (${r.aspect || '4:5'}) for "${r.purpose}". Shows: ${r.description}. Suggested alt: ${r.alt}` : `- FAILED for "${r.purpose}": ${r.reason}`));
+      if (asked.length > batch.length) lines.push(`- ${asked.length - batch.length} image(s) not made: the limit is ${images.MAX_PER_REQUEST} new images per request. Use the image library for the rest.`);
+      messages.push({ role: 'assistant', content: res.content });
+      messages.push({
+        role: 'user',
+        content: [{
+          type: 'tool_result', tool_use_id: imageCall.id,
+          content: `${lines.join('\n') || '- No images were made.'}\nUse the OK images by their exact paths (in "image" fields, <img src> or CSS url()). Do not refer to failed ones. Now call respond_to_jacob with the draft.`,
+        }],
+      });
+      continue;
+    }
+
     const call = res.content.find((b) => b.type === 'tool_use' && b.name === TOOL.name);
     if (!call) {
       if (attempt > 0) break; // it stopped trying to fix a failing draft
@@ -263,6 +325,7 @@ async function run({ message, rejected, draft, current, memory, version, history
 
     const input = call.input || {};
     out = out ? { ...out, ...input, changes: input.changes?.length ? input.changes : out.changes, message: out.message } : input;
+    out.images = made.map((m) => m.path);
     const ops = Array.isArray(input.operations) ? input.operations : [];
     if (!ops.length && attempt === 0) return { ...out, site: null, ops: 0 };
 
@@ -289,6 +352,7 @@ async function run({ message, rejected, draft, current, memory, version, history
           : `One of your operations was invalid, so none of that batch was applied. Call respond_to_jacob again with the full corrected list.\n- ${errors.join('\n- ')}`,
       }],
     });
+    attempt++;
   }
   return { ...out, message: 'I couldn’t get that change past the brand and compliance checks, so I haven’t drafted it. Tell me what matters most about it and I’ll take another run.', site: null, report, failed: true, ops: 0 };
 }

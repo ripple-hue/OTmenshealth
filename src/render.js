@@ -13,7 +13,7 @@ const rich = (s) => esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
 // Previews are served under a prefix (e.g. /view/draft); page links get that prefix, assets do not.
 let BASE = '';
-const isAsset = (h) => /^\/(img|fonts)\//.test(h) || h === '/styles.css';
+const isAsset = (h) => /^\/(img|fonts|media)\//.test(h) || h === '/styles.css';
 const safeHref = (h) => {
   h = String(h || '');
   if (!/^(\/|#)/.test(h)) return '#';

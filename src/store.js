@@ -4,10 +4,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const DATA = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
 const SEED = path.join(__dirname, '..', 'content', 'site.json');
 const STATE = path.join(DATA, 'state.json');
+const MEDIA = path.join(DATA, 'media'); // generated images, served at /media/<file>
+const MEDIA_INDEX = path.join(MEDIA, 'index.json');
 const vFile = (n) => path.join(DATA, `v${n}.json`);
 
 const read = (f) => JSON.parse(fs.readFileSync(f, 'utf8'));
@@ -17,9 +20,10 @@ const write = (f, v) => {
 };
 
 function init(force) {
-  fs.mkdirSync(DATA, { recursive: true });
+  fs.mkdirSync(MEDIA, { recursive: true });
   if (!force && fs.existsSync(STATE)) return;
   for (const f of fs.readdirSync(DATA)) if (/^v\d+\.json$/.test(f)) fs.unlinkSync(path.join(DATA, f));
+  for (const f of fs.readdirSync(MEDIA)) fs.unlinkSync(path.join(MEDIA, f));
   const now = new Date().toISOString();
   write(vFile(1), read(SEED));
   write(STATE, {
@@ -44,4 +48,21 @@ function addVersion(s, content, summary) {
   return n;
 }
 
-module.exports = { init, state, save, version, addVersion, DATA };
+// Generated images. Files are never edited in place, so a version that uses one keeps working.
+const listMedia = () => (fs.existsSync(MEDIA_INDEX) ? read(MEDIA_INDEX) : []);
+function saveMedia(buffer, ext, meta) {
+  fs.mkdirSync(MEDIA, { recursive: true });
+  const file = `gen-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}.${ext}`;
+  fs.writeFileSync(path.join(MEDIA, file), buffer);
+  const entry = { path: '/media/' + file, ...meta, at: new Date().toISOString() };
+  write(MEDIA_INDEX, [...listMedia(), entry]);
+  return entry;
+}
+const mediaFile = (name) => {
+  if (!/^[\w.-]+$/.test(name) || name === 'index.json') return null;
+  const f = path.join(MEDIA, name);
+  return fs.existsSync(f) ? f : null;
+};
+const mediaPaths = () => listMedia().map((m) => m.path).filter((p) => mediaFile(p.slice(7)));
+
+module.exports = { init, state, save, version, addVersion, listMedia, saveMedia, mediaFile, mediaPaths, DATA };

@@ -71,7 +71,11 @@ const SLOP = [
 const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
 const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag', 'css']);
 
-const images = () => fs.readdirSync(IMAGES_DIR).filter((f) => /\.(jpg|png|webp)$/.test(f)).map((f) => '/img/' + f);
+// The image library: the photos in public/img plus every image generated and approved by the image check.
+const images = () => [
+  ...fs.readdirSync(IMAGES_DIR).filter((f) => /\.(jpg|png|webp)$/.test(f)).map((f) => '/img/' + f),
+  ...require('./store').mediaPaths(),
+];
 
 function walk(node, visit, trail = []) {
   if (Array.isArray(node)) return node.forEach((v, i) => walk(v, visit, trail.concat(i)));

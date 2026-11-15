@@ -14,7 +14,7 @@ const VISUALS = ['checklist', 'plan', 'trend', 'report', 'plate'];
 const THEMES = ['paper', 'cream', 'champagne', 'ink'];
 const VARIANTS = { hero: ['photo', 'arch', 'statement'], steps: ['cards', 'staggered'], tracks: ['cards', 'expand'], plansTeaser: ['cards', 'tilted'], cta: ['plain', 'image'] };
 const THEMED = ['steps', 'feature', 'tracks', 'plansTeaser', 'faq', 'compare', 'cta', 'statement', 'marquee', 'custom'];
-const CODE_LIMITS = { html: 24000, css: 16000, globalCss: 20000 };
+const CODE_LIMITS = { html: 30000, css: 16000, js: 20000, globalCss: 20000, globalJs: 30000, scripts: 6 };
 
 // The section library, as the agent sees it. `req` fields must be present and non-empty.
 const SPEC = {
@@ -37,15 +37,23 @@ const SPEC = {
     req: ['html'],
     doc: [
       'A section you design and code yourself, for anything the library cannot do: a campaign hero, an offer layout, a new kind of band. Can go anywhere, including first on the home page in place of the hero.',
-      'Fields: html (the inner markup of the section), css (styles for this section only), theme (optional background), dark: true (dark background and light text; when it opens a page the floating nav turns dark over it), anchor (optional id for #links).',
-      'html: plain HTML and inline SVG. No <script>, <style>, <iframe>, forms, video or event handlers (onclick and so on). Links must go to a site page, a protected page or an #anchor. <img src> must be an image from the image library. Use <em> for the one italic gold accent word in a headline, not asterisks.',
-      'css: top-level declarations style the section itself; rules inside it are automatically scoped to this section, so write ".offer { ... }" not a page-wide selector. @media and @keyframes work. Colours only from the brand: var(--ink), var(--cream), var(--paper), var(--champagne), var(--honey), var(--bronze), var(--ink-soft), var(--line), var(--gold-grad), or the palette hex values and rgba() of them (rgba(0,0,0,a) is allowed for shadows). Fonts only var(--sans) and var(--serif); set font-family, font-size and font-weight separately, not the font shorthand. No @import, @font-face or outside URLs; url() only for /img/ library images.',
+      'Fields: html (the inner markup of the section), css (styles for this section only), js (JavaScript for this section), theme (optional background), dark: true (dark background and light text; when it opens a page the floating nav turns dark over it), anchor (optional id for #links).',
+      'html: any HTML and inline SVG, including forms, inputs, buttons, iframes, video and canvas. Not page-level tags (<html>, <head>, <body>, <base>, <meta>). Internal links must go to a site page, a protected page or an #anchor; outside links (https://...) are fine. <img> can use the image library or any https:// image. Use <em> for the one italic gold accent word in a headline, not asterisks. Put scripts in the js field, not in <script> tags.',
+      'js: plain JavaScript that runs once the page and its libraries have loaded, with this section element available as `section`. Use it for interaction and motion: tabs, accordions, sliders, a "find your plan" quiz, counters, scroll effects. It must parse, must not touch the footer, legal text or prescription notices, and every quoted string in it is checked as visible text. There is no server: a form can\'t store answers anywhere, so never collect personal or health information.',
+      'css: top-level declarations style the section itself; rules inside it are automatically scoped to this section, so write ".offer { ... }" not a page-wide selector. @media and @keyframes work. Colours only from the brand: var(--ink), var(--cream), var(--paper), var(--champagne), var(--honey), var(--bronze), var(--ink-soft), var(--line), var(--gold-grad), or the palette hex values and rgba() of them (rgba(0,0,0,a) is allowed for shadows). Fonts only var(--sans) and var(--serif); set font-family, font-size and font-weight separately, not the font shorthand. No @import or @font-face. url() can load images.',
       'Brand classes you can reuse inside it: wrap (centred page width), display (huge light headline), title (section headline), title-xl, eyebrow with <span class="dot"></span> inside, lede (body text), kicker (small spaced capitals), btn btn-gold (the primary gold button), btn btn-line, text-link, chips (row of pill <span>s). The page nav floats over the top 90px of the first section on a page, so a first section needs at least 150px of top padding.',
       'It must work at 375px wide: use clamp() for big type and a @media (max-width: 900px) rule for multi-column layouts. Every visible word is checked by the same health-claim and brand-voice rules as any other section.',
     ].join(' '),
   },
 };
-const GLOBAL_CSS_DOC = 'Site-wide styling: global.css (set with update_global, e.g. {"op":"update_global","fields":{"css":"..."}}) is a stylesheet added to every page of the site, after the brand stylesheet. Use it to restyle the whole site, for example for a campaign: the announcement bar (.announce), the nav (.nav, .nav-dark), buttons (.btn-gold), bands and section types (.hero, .statement, .promo, .plans, .plan, .band, .theme-ink and so on). Same colour, font and URL rules as custom section CSS. It cannot touch the footer, legal text or prescription notices (.footer, .legal, .rx, .footnote, .promo-terms), and it never reaches checkout, the member portal or intake. Set it to null to remove it.';
+const GLOBAL_CSS_DOC = [
+  'Site-wide code, all set with update_global (e.g. {"op":"update_global","fields":{"css":"..."}}) and applied to every page except checkout, the member portal and intake. Set a field to null to remove it.',
+  '- global.css: a stylesheet added after the brand stylesheet. Use it to restyle the whole site, for example for a campaign: the announcement bar (.announce), the nav (.nav, .nav-dark), buttons (.btn-gold), bands and section types (.hero, .statement, .promo, .plans, .plan, .band, .theme-ink and so on). Same colour and font rules as custom section CSS.',
+  '- global.js: JavaScript that runs on every page once it and its libraries have loaded. Same rules as a custom section\'s js.',
+  '- global.scripts: an array of at most 6 script URLs (https://... with a pinned version, or a site path) loaded on every page before global.js and the sections\' js, e.g. a library from cdn.jsdelivr.net. Never GSAP: its licence is not cleared for this product.',
+  '- global.smoothScroll: smooth scrolling with Lenis is on by default (window.lenis, mouse and trackpad only, off for reduced motion). Set false to turn it off. Use window.lenis.scrollTo(target) for scripted scrolling.',
+  'None of it may touch the footer, legal text or prescription notices (.footer, .legal, .rx, .footnote, .promo-terms).',
+].join('\n');
 const THEME_DOC = `Sections that take a theme (${THEMED.join(', ')}) accept theme: ${THEMES.join(' | ')}. Paper and cream are the quiet light backgrounds, champagne is warm gold, ink is the dark one. Alternating them is how a page gets rhythm and contrast.`;
 
 const COMPLIANCE = [
@@ -69,7 +77,7 @@ const SLOP = [
 ];
 
 const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
-const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag', 'css']);
+const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag', 'css', 'scripts']);
 
 // The image library: the photos in public/img plus every image generated and approved by the image check.
 const images = () => [
@@ -89,7 +97,12 @@ function texts(content) {
     const key = [...trail].reverse().find((k) => typeof k === 'string');
     if (typeof v !== 'string' || SKIP_KEYS.has(key)) return;
     // For agent-written HTML, check the words a visitor reads (and alt text), not the markup.
-    out.push({ text: key === 'html' ? code.parseHtml(v).text : v, key, trail });
+    // ...and for scripts, the quoted strings, which usually end up on the page.
+    if (key === 'html') {
+      const parsed = code.parseHtml(v);
+      out.push({ text: [parsed.text, ...parsed.scripts.flatMap(code.jsStrings)].join(' '), key, trail });
+    } else if (key === 'js') out.push({ text: code.jsStrings(v).join(' '), key, trail });
+    else out.push({ text: v, key, trail });
   });
   return out;
 }
@@ -148,30 +161,50 @@ function validate(content, prev) {
   }
   add('Checkout, portal and medical pages untouched', p);
 
-  // 3. Code the agent wrote: no scripts, nothing outside the site, brand colours and fonts only
+  // 3. Code the agent wrote (HTML, CSS, JavaScript): brand colours and fonts, scripts that parse,
+  //    nothing aimed at the footer, legal text or prescription notices. (JavaScript, forms, iframes and
+  //    outside resources are allowed since 15 November 2026, by the owner's decision.)
   const k = [];
   const customLinks = [];
+  const tooLong = (what, v, limit) => (typeof v === 'string' && v.length > limit ? [`${what} is too long (${v.length} characters, limit ${limit}).`] : []);
   for (const [key, page] of Object.entries(pages)) {
     for (const sec of page.sections || []) {
       if (sec.type !== 'custom') continue;
-      if (typeof sec.html !== 'string' || (sec.css != null && typeof sec.css !== 'string')) { k.push(`Section "${sec.id}" needs html (and css, if any) as text.`); continue; }
-      if (sec.html.length > CODE_LIMITS.html) k.push(`The HTML of section "${sec.id}" is too long (${sec.html.length} characters, limit ${CODE_LIMITS.html}).`);
-      if ((sec.css || '').length > CODE_LIMITS.css) k.push(`The CSS of section "${sec.id}" is too long (${sec.css.length} characters, limit ${CODE_LIMITS.css}).`);
+      if (typeof sec.html !== 'string' || [sec.css, sec.js].some((x) => x != null && typeof x !== 'string')) { k.push(`Section "${sec.id}" needs html (and css and js, if any) as text.`); continue; }
+      const where = `section "${sec.id}" on the ${key} page`;
+      k.push(...tooLong(`The HTML of ${where}`, sec.html, CODE_LIMITS.html), ...tooLong(`The CSS of ${where}`, sec.css, CODE_LIMITS.css), ...tooLong(`The JavaScript of ${where}`, sec.js, CODE_LIMITS.js));
       const parsed = code.parseHtml(sec.html);
-      k.push(...parsed.problems.map((x) => `The HTML of section "${sec.id}" on the ${key} page ${x}.`));
-      if (sec.css) k.push(...code.checkCss(sec.css).map((x) => `The CSS of section "${sec.id}" on the ${key} page ${x}.`));
-      if (!parsed.text) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
+      k.push(...parsed.problems.map((x) => `The HTML of ${where} ${x}.`));
+      if (sec.css) k.push(...code.checkCss(sec.css).map((x) => `The CSS of ${where} ${x}.`));
+      if (sec.js) k.push(...code.checkJs(sec.js).map((x) => `The JavaScript of ${where} ${x}.`));
+      if (!parsed.text && !sec.js) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
+      if (/\bgsap\b|greensock/i.test(sec.html + (sec.js || ''))) k.push(`The code of ${where} uses GSAP, whose licence is not cleared for this product. Use CSS animation, Lenis or another MIT-licensed library.`);
       customLinks.push(...parsed.hrefs.map((h) => ['href', h]), ...parsed.images.map((i) => ['image', i]));
     }
   }
   if (g.css != null) {
     if (typeof g.css !== 'string') k.push('The site-wide CSS must be text.');
+    else k.push(...tooLong('The site-wide CSS', g.css, CODE_LIMITS.globalCss), ...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
+  }
+  if (g.js != null) {
+    if (typeof g.js !== 'string') k.push('The site-wide JavaScript must be text.');
     else {
-      if (g.css.length > CODE_LIMITS.globalCss) k.push(`The site-wide CSS is too long (${g.css.length} characters, limit ${CODE_LIMITS.globalCss}).`);
-      k.push(...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
+      k.push(...tooLong('The site-wide JavaScript', g.js, CODE_LIMITS.globalJs), ...code.checkJs(g.js).map((x) => `The site-wide JavaScript ${x}.`));
+      if (/\bgsap\b|greensock/i.test(g.js)) k.push('The site-wide JavaScript uses GSAP, whose licence is not cleared for this product.');
     }
   }
-  add('Code is safe and on brand', k);
+  if (g.scripts != null) {
+    if (!Array.isArray(g.scripts) || g.scripts.some((u) => typeof u !== 'string')) k.push('global.scripts must be a list of script URLs.');
+    else {
+      if (g.scripts.length > CODE_LIMITS.scripts) k.push(`global.scripts loads ${g.scripts.length} scripts (limit ${CODE_LIMITS.scripts}).`);
+      for (const u of g.scripts) {
+        if (!/^(https:\/\/|\/(?!\/))/.test(u)) k.push(`The script "${u}" must be an https:// URL or a site path.`);
+        if (/gsap|greensock/i.test(u)) k.push(`The script "${u}" is GSAP, whose licence is not cleared for this product. Use CSS animation, Lenis or another MIT-licensed library.`);
+      }
+    }
+  }
+  if (g.smoothScroll != null && typeof g.smoothScroll !== 'boolean') k.push('global.smoothScroll must be true or false.');
+  add('Code is on brand and runs', k);
 
   // 4. Links and images resolve
   const l = [];
@@ -179,10 +212,10 @@ function validate(content, prev) {
   const checkLink = (key, v) => {
     if (key === 'href') {
       const base = String(v).split(/[?#]/)[0];
-      const ok = String(v).startsWith('#') || paths.has(base || '/') || Object.keys(LOCKED).includes(base);
+      const ok = String(v).startsWith('#') || /^(https?:\/\/|mailto:|tel:)/i.test(String(v)) || paths.has(base || '/') || Object.keys(LOCKED).includes(base);
       if (!ok) l.push(`Link "${v}" goes nowhere.`);
     }
-    if (key === 'image' && !okImages.includes(v)) l.push(`Image "${v}" is not in the image library.`);
+    if (key === 'image' && !okImages.includes(v) && !/^https:\/\//.test(String(v))) l.push(`Image "${v}" is not in the image library.`);
     if (key === 'visual' && !VISUALS.includes(v)) l.push(`Visual "${v}" does not exist.`);
   };
   walk(content, (v, trail) => checkLink(trail[trail.length - 1], v));
@@ -203,7 +236,7 @@ function validate(content, prev) {
     }
     if (LIMITS[t.key] && t.text.length > LIMITS[t.key]) b.push(`A ${t.key} on the ${where(t.trail)} is too long (${t.text.length} characters, limit ${LIMITS[t.key]}).`);
     if (t.key === 'headline' && (t.text.match(/\*/g) || []).length > 2) b.push(`A headline on the ${where(t.trail)} has more than one accent word.`);
-    if (/\*/.test(t.text) && t.key !== 'headline') b.push(`Accent asterisks appear outside a headline on the ${where(t.trail)}.`);
+    if (/\*/.test(t.text) && t.key !== 'headline' && t.key !== 'js' && t.key !== 'html') b.push(`Accent asterisks appear outside a headline on the ${where(t.trail)}.`);
   }
   add('Health-claim rules', c);
   add('Brand voice and layout limits', b);

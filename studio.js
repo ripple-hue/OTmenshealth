@@ -15,6 +15,12 @@ const images = require('./src/images');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
+const LENIS = path.join(ROOT, 'node_modules', 'lenis', 'dist', 'lenis.min.js'); // smooth scrolling, MIT licence
+
+// Previews run the agent's own JavaScript. This header sandboxes every preview page, even when it is
+// opened directly: its scripts run in an isolated origin, so they can't use the signed-in Studio
+// (approve, push, read state) or its cookie. Forms, pop-ups and dialogs still work for testing.
+const PREVIEW_SANDBOX = { 'Content-Security-Policy': 'sandbox allow-scripts allow-forms allow-popups allow-modals' };
 const PORT = process.env.PORT || 4100;
 const PASSCODE = process.env.STUDIO_PASSCODE || 'otmens';
 const TOKEN = crypto.createHash('sha256').update('ot-studio:' + PASSCODE).digest('hex');
@@ -213,8 +219,8 @@ function view(res, which, rest, query) {
   const p = '/' + rest.replace(/\/+$/, '');
   const base = '/view/' + which;
   const key = Object.keys(content.pages).find((k) => content.pages[k].path === p);
-  if (key) return html(res, renderPage(content, key, { base, highlight: highlight ? highlight(key) : [], scroll: query.get('scroll') !== '0' }));
-  if (LOCKED[p]) return html(res, renderLocked(content, LOCKED[p], { base }));
+  if (key) return send(res, 200, 'text/html; charset=utf-8', renderPage(content, key, { base, highlight: highlight ? highlight(key) : [], scroll: query.get('scroll') !== '0' }), PREVIEW_SANDBOX);
+  if (LOCKED[p]) return send(res, 200, 'text/html; charset=utf-8', renderLocked(content, LOCKED[p], { base }), PREVIEW_SANDBOX);
   send(res, 404, 'text/html; charset=utf-8', '<body style="font:16px Helvetica,Arial,sans-serif;padding:48px;color:#17130E;background:#F7F1E6">This page does not exist in this version.</body>');
 }
 
@@ -232,16 +238,18 @@ http
     try {
       // Public: static assets, and the live version for Jacob's website to pull.
       const file = path.normalize(path.join(PUBLIC, p));
+      // Static assets allow any origin: sandboxed previews load fonts and scripts cross-origin.
       if (p !== '/' && file.startsWith(PUBLIC + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-        return send(res, 200, TYPES[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file), { 'Cache-Control': 'public, max-age=300' });
+        return send(res, 200, TYPES[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file), { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
       }
+      if (p === '/vendor/lenis.min.js') return send(res, 200, TYPES['.js'], fs.readFileSync(LENIS), { 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' });
       if (p === '/favicon.ico') return send(res, 204, 'image/x-icon', '');
       // Generated images are public so the website can show them. Names are random and never reused.
       const media = p.match(/^\/media\/([\w.-]+)$/);
       if (media) {
         const f = store.mediaFile(media[1]);
         if (!f) return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
-        return send(res, 200, TYPES[path.extname(f)] || 'application/octet-stream', fs.readFileSync(f), { 'Cache-Control': 'public, max-age=31536000, immutable' });
+        return send(res, 200, TYPES[path.extname(f)] || 'application/octet-stream', fs.readFileSync(f), { 'Cache-Control': 'public, max-age=31536000, immutable', 'Access-Control-Allow-Origin': '*' });
       }
       if (p === '/api/published') {
         const s = store.state();
@@ -261,6 +269,12 @@ http
       if (p === '/') return html(res, fs.readFileSync(path.join(ROOT, 'studio', 'index.html'), 'utf8'));
       if (p === '/api/state') return json(res, 200, publicState());
       if (p.startsWith('/api/') && req.method === 'POST') {
+        // Only the Studio page itself may act: JSON requests from this origin. A sandboxed preview
+        // sends "Origin: null" and can't send JSON cross-origin without a preflight we never grant.
+        const origin = req.headers.origin;
+        if (!/^application\/json/.test(req.headers['content-type'] || '') || (origin && origin !== `${req.headers['x-forwarded-proto'] || 'http'}://${req.headers.host}` && origin !== `https://${req.headers.host}`)) {
+          return json(res, 403, { error: 'That request did not come from the Studio.' });
+        }
         const fn = api[p.slice(5)];
         if (!fn) return json(res, 404, { error: 'Unknown action.' });
         const result = await fn(await readBody(req));

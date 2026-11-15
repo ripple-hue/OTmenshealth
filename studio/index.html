@@ -295,25 +295,8 @@ function drawFrames() {
   frameKey = key;
   const f = $('frames');
   f.className = 'frames' + (device === 'mobile' ? ' mobile' : '');
-  f.innerHTML = which.map(([w, label, cls, q]) => `<section class="pane ${cls}"><header><b>${esc(label)}</b><span>${esc(page)}</span></header><div class="scale"><iframe title="${esc(label)}" src="/view/${w}${esc(page)}${esc(q)}"></iframe></div></section>`).join('');
+  f.innerHTML = which.map(([w, label, cls, q]) => `<section class="pane ${cls}"><header><b>${esc(label)}</b><span>${esc(page)}</span></header><div class="scale"><iframe title="${esc(label)}" sandbox="allow-scripts allow-forms allow-popups allow-modals" src="/view/${w}${esc(page)}${esc(q)}"></iframe></div></section>`).join('');
   fit();
-  // Side by side: scrolling one pane scrolls the other to the same place.
-  const frames = [...f.querySelectorAll('iframe')];
-  if (frames.length === 2) {
-    let lock = null;
-    frames.forEach((fr, i) => fr.addEventListener('load', () => {
-      const win = fr.contentWindow, other = frames[1 - i];
-      win.addEventListener('scroll', () => {
-        if (lock === other) return;
-        lock = fr;
-        try {
-          const a = win.document.documentElement, b = other.contentDocument.documentElement;
-          other.contentWindow.scrollTo(0, (win.scrollY / Math.max(1, a.scrollHeight - win.innerHeight)) * (b.scrollHeight - other.contentWindow.innerHeight));
-        } catch {}
-        clearTimeout(win.__t); win.__t = setTimeout(() => { lock = null; }, 80);
-      }, { passive: true });
-    }));
-  }
 }
 function fit() {
   document.querySelectorAll('.scale').forEach((box) => {
@@ -325,6 +308,20 @@ function fit() {
   });
 }
 new ResizeObserver(fit).observe($('frames'));
+
+// Compare view: scrolling one pane scrolls the other to the same place. Previews are sandboxed
+// (they run the agent's scripts), so each page reports its scroll position by message instead.
+let syncLock = { from: null, until: 0 };
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.ot !== 'scroll') return;
+  const frames = [...document.querySelectorAll('#frames iframe')];
+  if (frames.length !== 2) return;
+  const i = frames.findIndex((fr) => fr.contentWindow === e.source);
+  if (i < 0) return;
+  if (syncLock.from !== null && syncLock.from !== i && Date.now() < syncLock.until) return;
+  syncLock = { from: i, until: Date.now() + 150 };
+  frames[1 - i].contentWindow.postMessage({ ot: 'scrollto', f: e.data.f }, '*');
+});
 
 const SKILL_NAMES = { copywriting: 'Copy', design: 'Design', 'flow-building': 'Flow', development: 'Code', imagery: 'Images' };
 function drawChat() {

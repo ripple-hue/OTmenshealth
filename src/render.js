@@ -13,9 +13,10 @@ const rich = (s) => esc(s).replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
 // Previews are served under a prefix (e.g. /view/draft); page links get that prefix, assets do not.
 let BASE = '';
-const isAsset = (h) => /^\/(img|fonts|media)\//.test(h) || h === '/styles.css';
+const isAsset = (h) => /^\/(img|fonts|media|vendor)\//.test(h) || h === '/styles.css';
 const safeHref = (h) => {
   h = String(h || '');
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(h)) return esc(h);
   if (!/^(\/|#)/.test(h)) return '#';
   return esc(h.startsWith('/') && BASE && !isAsset(h) ? BASE + h : h);
 };
@@ -362,15 +363,28 @@ const sections = {
     </section>`,
 };
 
-// A section the agent designed itself: its own HTML (no scripts) and CSS scoped to this section.
+// Runs agent JavaScript once the page and its libraries (Lenis, global.scripts) have loaded.
+const afterLoad = (js, setup = '') => `<script>document.addEventListener('DOMContentLoaded',function(){${setup}\n${code.cleanJs(js)}\n});</script>`;
+
+// A section the agent designed itself: its own HTML, CSS scoped to this section, and optional JavaScript
+// (`js`, which receives the section element as `section`).
 sections.custom = (s) => {
   const css = code.scopeCss(s.id, s.css);
+  const id = String(s.id).replace(/["\\]/g, '');
   return `
     <section class="custom${s.theme ? theme(s) : ''}${s.dark ? ' custom-dark' : ''}" data-section="${esc(s.id)}"${s.anchor ? ` id="${esc(s.anchor)}"` : ''}>
       ${css ? `<style>${css}</style>` : ''}
-      ${code.sanitizeHtml(s.html, (h) => (h.startsWith('/') && BASE && !isAsset(h) ? BASE + h : h))}
-    </section>`;
+      ${code.sanitizeHtml(s.html, (h) => (BASE && !isAsset(h) ? BASE + h : h))}
+    </section>${s.js ? afterLoad(s.js, `var section=document.querySelector('[data-section="${id}"]');`) : ''}`;
 };
+
+// Smooth scrolling (Lenis, MIT licence) on every page unless global.smoothScroll is false.
+// Mouse and trackpad only: touch keeps native scrolling. Off for visitors who ask for reduced motion.
+const LENIS_INIT = `<script>document.addEventListener('DOMContentLoaded',function(){if(!window.Lenis||matchMedia('(prefers-reduced-motion: reduce)').matches)return;window.lenis=new Lenis({autoRaf:true,anchors:{offset:-100},allowNestedScroll:true});});</script>`;
+
+// In Studio previews, which run sandboxed, the page reports its scroll position to the Studio and
+// follows the other pane when asked (the Studio can't reach into a sandboxed page directly).
+const PREVIEW_SYNC = `<script>(function(){var lock=0;function frac(){var d=document.documentElement;return window.scrollY/Math.max(1,d.scrollHeight-window.innerHeight)}window.addEventListener('scroll',function(){if(Date.now()<lock)return;parent.postMessage({ot:'scroll',f:frac()},'*')},{passive:true});window.addEventListener('message',function(e){if(!e.data||e.data.ot!=='scrollto')return;lock=Date.now()+120;var d=document.documentElement,y=e.data.f*(d.scrollHeight-window.innerHeight);if(window.lenis)window.lenis.scrollTo(y,{immediate:true});else window.scrollTo(0,y)})})();</script>`;
 
 const heroPhoto = sections.hero;
 
@@ -463,6 +477,8 @@ function renderPageInner(site, key, opts) {
 <link rel="preload" href="/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 ${siteCss ? `<style id="site-css">${siteCss}</style>` : ''}
+${g.smoothScroll === false ? '' : '<script src="/vendor/lenis.min.js" defer></script>'}
+${(Array.isArray(g.scripts) ? g.scripts : []).map((u) => `<script src="${esc(u)}" defer></script>`).join('\n')}
 </head>
 <body class="${overHero ? 'has-hero' : ''}">
 ${header(g, overHero)}
@@ -473,6 +489,9 @@ ${footer(g)}
 <script>
 (function(){var n=document.querySelector('[data-nav]');if(!n)return;var f=function(){n.classList.toggle('is-stuck',window.scrollY>40)};f();window.addEventListener('scroll',f,{passive:true})})();
 </script>
+${g.smoothScroll === false ? '' : LENIS_INIT}
+${g.js ? afterLoad(g.js) : ''}
+${opts.base ? PREVIEW_SYNC : ''}
 ${opts.highlight?.length ? highlightScript(opts.highlight, opts.scroll !== false) : ''}
 </body>
 </html>`;

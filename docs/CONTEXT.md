@@ -92,7 +92,7 @@ The current compliance check is a phrase list plus instructions. It is **not** a
 
 ## The shape of the solution
 
-The core design idea is **safety through constraint**: the agent edits a structured content document, mostly through a fixed library of designed sections, and code checks every draft before a human can approve it. Since 15 November 2026 it can also write HTML and CSS inside that document (`custom` sections and site-wide CSS), but never JavaScript or server code, and only with brand colours and fonts. See decision 14 in `DECISIONS.md`. Its instructions are a core file plus four skills: copywriting, design, flow building and development.
+The core design idea is **safety through constraint**: the agent edits a structured content document, mostly through a fixed library of designed sections, and code checks every draft before a human can approve it. Since 15 November 2026 it can also write HTML, CSS and JavaScript inside that document (`custom` sections and site-wide CSS and JavaScript) and load open-source libraries, but never server code, never GSAP, and only with brand colours and fonts. Studio previews are sandboxed so its scripts can't approve or push. See decisions 14, 17 and 18 in `DECISIONS.md`. Its instructions are a core file plus four skills: copywriting, design, flow building and development.
 
 ```
  Jacob (browser)

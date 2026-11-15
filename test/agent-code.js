@@ -69,16 +69,42 @@ expect('nav goes dark over a dark custom hero', html.includes('nav nav-dark') &&
 expect('preview prefixes links inside custom HTML', renderPage(site, 'home', { base: '/view/draft' }).includes('href="/view/draft/membership"'));
 expect('the seed site still validates', validate(current).ok);
 
+// Allowed since 15 November 2026 (the owner removed the no-JavaScript rule): each must pass.
+const allowed = {
+  'script tag': { html: '<p>Hello there</p><script>console.log(1)</script>' },
+  'event handler': { html: '<button onclick="this.classList.toggle(\'open\')">Show the plans</button>' },
+  'outside link': { html: '<a href="https://example.com">Read more about bloodwork</a>' },
+  'outside image': { html: '<p>Hi there</p><img src="https://example.com/x.jpg" alt="A stone block">' },
+  'iframe': { html: '<p>Hi there</p><iframe src="https://example.com/embed" title="Map"></iframe>' },
+  'form and inputs': { html: '<form><label>Your goal <select><option>Energy</option></select></label><button>Next</button></form>' },
+  'outside url() image': { html: '<p>Hi there</p>', css: 'background: url(https://example.com/x.png);' },
+  'section js': { html: '<p class="n">0</p>', js: 'section.querySelector(".n").textContent = "Two plans";' },
+  'interactive quiz': {
+    html: '<div class="q"><p class="q-text">What matters most to you?</p><button data-a="care">A care team</button><button data-a="numbers">Just my numbers</button><p class="q-result"></p></div>',
+    js: 'section.querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { section.querySelector(".q-result").textContent = b.dataset.a === "care" ? "Gold suits you: a dedicated advisor and concierge care." : "Silver covers your bloodwork."; }); });',
+  },
+};
+for (const [name, sec] of Object.entries(allowed)) {
+  const s = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'ok', type: 'custom', ...sec } }], current);
+  const v = validate(s, current);
+  expect(`allows ${name}`, v.ok, v.errors[0] || '');
+}
+const gl = applyOps(current, [{ op: 'update_global', fields: { scripts: ['https://cdn.jsdelivr.net/npm/some-lib@1.0.0/dist/lib.min.js'], js: 'document.documentElement.classList.add("js-ready");' } }], current);
+expect('allows site-wide scripts and global.js', validate(gl, current).ok, validate(gl, current).errors[0] || '');
+
 // Each of these must be blocked, with a readable reason.
 const bad = {
-  'script tag': { html: '<p>Hi</p><script>alert(1)</script>' },
-  'event handler': { html: '<p onclick="steal()">Hi</p>' },
-  'javascript: link': { html: '<a href="javascript:alert(1)">Hi</a>' },
-  'outside link': { html: '<a href="https://example.com">Hi</a>' },
   'link to missing page': { html: '<a href="/nowhere">Hi</a>' },
-  'image not in library': { html: '<p>Hi</p><img src="https://example.com/x.jpg" alt="x">' },
-  'iframe': { html: '<p>Hi</p><iframe src="/"></iframe>' },
-  'form': { html: '<form><p>Hi</p></form>' },
+  'missing library image': { html: '<p>Hi</p><img src="/img/nope.jpg" alt="x">' },
+  'page-level tag': { html: '<p>Hi</p><base href="https://evil.example/">' },
+  'script that does not parse': { html: '<p>Hi there</p>', js: 'function ( {' },
+  'script hiding the legal text': { html: '<p>Hi there</p>', js: 'document.querySelector(".legal").remove();' },
+  'script hiding the footer': { html: '<p>Hi there</p>', js: 'document.querySelector("footer").style.display = "none";' },
+  'claim inside a script': { html: '<p class="x">Hi</p>', js: 'section.querySelector(".x").textContent = "Results guaranteed in 30 days.";' },
+  'no prescription inside a <script>': { html: '<p class="x">Hi</p><script>document.querySelector(".x").textContent = "No prescription needed";</script>' },
+  'claim in an inline handler': { html: '<button onclick="alert(\'Guaranteed results\')">Go on then</button>' },
+  'GSAP in a section': { html: '<p>Hi there</p>', js: 'gsap.to(section, { opacity: 1 });' },
+  'off-brand colour in a <style> block': { html: '<p>Hi</p><style>.x { color: #ff0000; }</style>' },
   'off-brand hex colour': { html: '<p>Hi</p>', css: 'color: #ff0000;' },
   'off-brand rgba colour': { html: '<p>Hi</p>', css: 'background: rgba(0, 120, 255, .5);' },
   'named colour': { html: '<p>Hi</p>', css: '.x { color: red; }' },
@@ -86,7 +112,7 @@ const bad = {
   'non-brand font': { html: '<p>Hi</p>', css: 'font-family: Comic Sans MS;' },
   'font shorthand': { html: '<p>Hi</p>', css: 'font: 12px Arial;' },
   '@import': { html: '<p>Hi</p>', css: '@import url(https://evil.example/x.css);' },
-  'outside url()': { html: '<p>Hi</p>', css: 'background: url(https://evil.example/x.png);' },
+  'a web font': { html: '<p>Hi</p>', css: '@font-face { font-family: X; src: url(https://example.com/x.woff2); }' },
   'escape the scope': { html: '<p>Hi</p>', css: '} body { display: none; } .x {' },
   'break out of <style>': { html: '<p>Hi</p>', css: '</style><script>alert(1)</script>' },
   'hide the legal text': { html: '<p>Hi</p>', css: '.legal { display: none; }' },
@@ -102,12 +128,36 @@ for (const [name, sec] of Object.entries(bad)) {
   const v = validate(s, current);
   expect(`blocks ${name}`, !v.ok, v.errors[0] || '(no error)');
 }
-const g = applyOps(current, [{ op: 'update_global', fields: { css: '.footer { display: none }' } }], current);
-expect('blocks site-wide CSS hiding the footer', !validate(g, current).ok, validate(g, current).errors[0]);
+const globalBad = {
+  'site-wide CSS hiding the footer': { css: '.footer { display: none }' },
+  'site-wide JS hiding the legal text': { js: 'document.querySelectorAll(".legal").forEach(function (e) { e.remove(); });' },
+  'GSAP in global.scripts': { scripts: ['https://cdn.jsdelivr.net/npm/gsap@3.15.1/dist/gsap.min.js'] },
+  'a plain-http script': { scripts: ['http://example.com/x.js'] },
+  'more than six scripts': { scripts: Array.from({ length: 7 }, (_, i) => `https://example.com/${i}.js`) },
+};
+for (const [name, fields] of Object.entries(globalBad)) {
+  const s = applyOps(current, [{ op: 'update_global', fields }], current);
+  const v = validate(s, current);
+  expect(`blocks ${name}`, !v.ok, v.errors[0] || '(no error)');
+}
 
-// Render-time safety even if the checks were skipped
-const raw = renderPage(applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'raw', type: 'custom', html: '<p onclick="x()">A</p><script>alert(1)</script><a href="javascript:x()">B</a>', css: '</style><script>alert(2)</script>' } }], current), 'home');
-expect('renderer strips scripts and handlers on its own', !/<script>alert|onclick|javascript:/.test(raw));
+// What the renderer puts on the page
+const withJs = applyOps(current, [
+  { op: 'update_global', fields: { scripts: ['https://cdn.example.com/lib@1.0.0/lib.js'], js: 'window.__site = 1;' } },
+  { op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'quiz', type: 'custom', html: '<p class="x">Hi</p>', js: 'section.dataset.ready = "1";' } },
+], current);
+const page = renderPage(withJs, 'home');
+expect('section js runs after load with `section` set', page.includes(`var section=document.querySelector('[data-section="quiz"]');`) && page.includes('section.dataset.ready'));
+expect('global.scripts load in the head, deferred', /<script src="https:\/\/cdn\.example\.com\/lib@1\.0\.0\/lib\.js" defer><\/script>\s*<\/head>/.test(page));
+expect('global.js is on the page', page.includes('window.__site = 1;'));
+expect('Lenis smooth scrolling is on by default', page.includes('/vendor/lenis.min.js') && page.includes('new Lenis('));
+const noSmooth = renderPage(applyOps(current, [{ op: 'update_global', fields: { smoothScroll: false } }], current), 'home');
+expect('smoothScroll: false turns Lenis off', !noSmooth.includes('lenis.min.js'));
+expect('preview scroll sync only in Studio previews', !page.includes("ot:'scroll'") && renderPage(withJs, 'home', { base: '/view/draft' }).includes("ot:'scroll'"));
+const { renderLocked } = require(path.join(repo, 'src/render'));
+const locked = renderLocked(withJs, 'Checkout');
+expect('protected pages get none of the agent code', !locked.includes('window.__site') && !locked.includes('cdn.example.com') && !locked.includes('lenis'));
+expect('a stray </script in agent js cannot end the tag early', renderPage(applyOps(current, [{ op: 'update_global', fields: { js: 'var s = "</script><b>x</b>";' } }], current), 'home').includes('<\\/script><b>x</b>'));
 
 console.log(fails ? `\n${fails} FAILED` : '\nAll passed');
 

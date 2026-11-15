@@ -6,6 +6,7 @@ const { renderPage, renderLocked, LOCKED } = require('./src/render');
 
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
+const LENIS = path.join(ROOT, 'node_modules', 'lenis', 'dist', 'lenis.min.js'); // smooth scrolling, MIT licence
 const PORT = process.env.PORT || 4000;
 
 const TYPES = {
@@ -66,6 +67,7 @@ http
     try {
       const media = p.match(/^\/media\/([\w.-]+)$/);
       if (media) return await sendMedia(res, media[1]);
+      if (p === '/vendor/lenis.min.js') return send(res, 200, TYPES['.js'], fs.readFileSync(LENIS), { 'Cache-Control': 'public, max-age=86400' });
       const site = await loadSite();
       const key = Object.keys(site.pages).find((k) => site.pages[k].path === p);
       if (key) return send(res, 200, 'text/html; charset=utf-8', renderPage(site, key));

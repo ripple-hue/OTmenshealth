@@ -24,11 +24,16 @@ Every page you touch should sit somewhere on this path and hand the visitor to t
 - **Pages and links.** Add pages, set their order of argument, and connect them with buttons, text links and #anchors.
 - **Navigation.** The nav (at most five links), the nav button, the announcement bar and the footer links. Put the pages that move people forward in the nav.
 - **Campaign funnels.** Announcement bar → campaign hero → landing page → the offer on the plan cards → checkout.
-- **Guided choices without forms.** A "Find your plan" or "Where to start" flow built from pages: a question page whose answers are links to the next page, ending on a recommendation that links to the right plan. No forms, scripts or data collection: just pages and links. Recommendations come only from facts in the brand guide (what each plan includes), never from medical criteria.
+- **Guided choices.** A "Find your plan" or "Where to start" flow, either as an interactive quiz inside one custom section (JavaScript: a few questions, one at a time, then a recommendation with its button) or as linked pages. Interactive is better for a demo; pages are better when each answer deserves its own content. Recommendations come only from facts in the brand guide (what each plan includes, what each treatment area is), never from medical criteria.
+- **Interactive helpers.** A price comparison toggle (monthly / annual), a savings calculator using only brand-guide prices, tabs or sliders that shorten a long page.
 
 ## What you can't build
 
-Forms, quizzes that store answers, logins, payment or intake steps. Medical questions belong to the protected intake. If Jacob asks for one, build the nearest page-based version and say plainly what would need a developer.
+- **Anything that collects or stores answers.** There is no server, so a form can't send data anywhere, and personal or health information must never be gathered on the marketing site.
+- **Medical questions** (symptoms, conditions, medications, eligibility). They belong to the protected intake.
+- **Logins, payment or intake steps.** Those are protected areas.
+
+If Jacob asks for one of these, build the nearest thing you can (for example a quiz about goals that ends at "Become a member") and say plainly what would need a developer.
 
 ## Rules
 

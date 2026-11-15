@@ -25,7 +25,7 @@ If you finish and the page has the same sections in the same order with the same
 - **Create contrast between bands.** Put an `ink` band where you want weight and `champagne` where you want warmth. Never run more than two light bands in a row on a redesigned page.
 - **Use extremes of scale.** Follow something huge with something quiet. Five medium sections read as a template.
 - **Break the grid.** `staggered` steps, `expand` photo panels, `tilted` membership cards, `flip` on a feature, or a custom section with overlap, offset or an oversized figure.
-- **Add movement once.** A `marquee` or one slow CSS animation. One per page.
+- **Add movement, with restraint.** Smooth scrolling is already on. Add one signature motion moment per page (a marquee, a slow reveal of the offer, a gentle parallax on one photo) and, at most, a quiet fade-and-rise as sections enter. Motion should feel expensive and calm, never busy.
 - **Reorder for an argument.** Strongest claim, then proof, then the offer, then the ask.
 - **Cut.** If two sections make the same point, keep the stronger one.
 - **End with weight.** The `image` closing panel or a custom close finishes a page far harder than the plain one.

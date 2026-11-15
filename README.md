@@ -30,7 +30,7 @@ Website service: `STUDIO_URL`, the address of the Studio. The website then shows
 
 ## How it stays safe
 
-- The agent edits a JSON document through a section library (`src/render.js`, described to the agent by `SPEC` in `src/guard.js`): 15 designed section types with layout variants and four background themes, plus `custom` sections where it writes its own HTML and CSS, and a site-wide stylesheet. It cannot write JavaScript or server code, load anything from outside the site, or use colours and fonts outside the brand.
+- The agent edits a JSON document through a section library (`src/render.js`, described to the agent by `SPEC` in `src/guard.js`): 15 designed section types with layout variants and four background themes, plus `custom` sections where it writes its own HTML and CSS, and a site-wide stylesheet. It can write HTML, CSS and JavaScript and load open-source libraries (no GSAP), but not server code, and only with the brand's colours and fonts. Smooth scrolling (Lenis) is built in. Studio previews run its scripts in a sandbox, so they can't approve or push.
 - `src/code.js` sanitises the agent's HTML and CSS, and `src/guard.js` checks every draft in code: section library and code rules, protected areas untouched, every link and image resolves, health-claim rules, brand voice limits, every page renders. A failing draft is sent back to the agent and never reaches Jacob as approvable.
 - Only the Approve and Push buttons change what is stored or live. The agent has no access to either.
 - `/checkout`, `/portal` and `/intake` are placeholders the agent cannot create, edit or remove.

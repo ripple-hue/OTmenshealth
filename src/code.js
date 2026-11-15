@@ -1,102 +1,131 @@
 'use strict';
-// Code the agent writes: the HTML of `custom` sections and the site-wide `global.css`.
-// Two jobs, used by both render.js and guard.js:
-//   1. check(): list every rule a piece of agent code breaks, so the draft is sent back for repair.
-//   2. sanitizeHtml() / scopeCss(): make the output safe at render time even if a check were skipped.
-// The agent never writes JavaScript or server code, and nothing here can reach the protected pages.
+// Code the agent writes: the HTML and JavaScript of `custom` sections, and the site-wide
+// `global.css`, `global.js` and `global.scripts`. Used by both render.js and guard.js.
+//
+// Since 15 November 2026 (owner's decision) the agent may write JavaScript, forms, iframes and
+// load outside resources. What is still checked here:
+//   - brand: colours and fonts in CSS (including <style> and inline styles)
+//   - protected areas: no CSS or JS aimed at the footer, legal text or prescription notices
+//   - health claims and voice: visible text, alt text and the strings inside scripts (guard.js)
+//   - correctness: scripts must parse, internal links and library images must exist, the page
+//     structure tags (<html>, <head>, <body>, <base>, <meta>) can't be used inside a section
+// Agent scripts never run on the protected pages, and Studio previews run them in a sandbox
+// so they can't act on the signed-in Studio (see studio.js).
+
+const vm = require('vm');
 
 /* ---------- HTML ---------- */
 
-const SVG_TAGS = ['svg', 'path', 'circle', 'ellipse', 'rect', 'line', 'polyline', 'polygon', 'g', 'defs', 'lineargradient', 'radialgradient', 'stop', 'text', 'tspan'];
-const TAGS = new Set([
-  'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'img', 'ul', 'ol', 'li', 'dl', 'dt', 'dd',
-  'strong', 'b', 'em', 'i', 'small', 's', 'sup', 'sub', 'mark', 'time', 'br', 'hr', 'figure', 'figcaption',
-  'blockquote', 'section', 'article', 'header', 'footer', 'aside', 'nav', 'details', 'summary',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'caption', ...SVG_TAGS,
-]);
-const VOID = new Set(['img', 'br', 'hr']);
-const DROP_WITH_CONTENT = new Set(['script', 'style', 'iframe', 'object', 'embed', 'template', 'noscript', 'textarea', 'select']);
-const ATTRS = new Set([
-  'class', 'id', 'href', 'src', 'alt', 'title', 'loading', 'width', 'height', 'role', 'style', 'datetime', 'open', 'colspan', 'rowspan', 'scope',
-  // SVG
-  'viewbox', 'd', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray', 'stroke-dashoffset', 'fill-opacity',
-  'stroke-opacity', 'opacity', 'cx', 'cy', 'r', 'rx', 'ry', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'fx', 'fy', 'points', 'transform', 'offset',
-  'stop-color', 'stop-opacity', 'gradientunits', 'gradienttransform', 'preserveaspectratio', 'xmlns', 'text-anchor', 'font-size', 'letter-spacing',
-]);
-const okAttr = (n) => ATTRS.has(n) || /^aria-[a-z-]+$/.test(n) || /^data-[a-z0-9-]+$/.test(n);
+const SVG_CASE = { lineargradient: 'linearGradient', radialgradient: 'radialGradient', viewbox: 'viewBox', textpath: 'textPath', clippath: 'clipPath', fegaussianblur: 'feGaussianBlur' };
+const VOID = new Set(['img', 'br', 'hr', 'input', 'source', 'track', 'wbr', 'col', 'area', 'embed', 'param']);
+const RAW = new Set(['script', 'style']); // content passed through untouched
+const PAGE_TAGS = new Set(['html', 'head', 'body', 'base', 'meta', 'title']); // would break the page around the section
+const TEXT_ATTRS = new Set(['alt', 'title', 'placeholder', 'aria-label', 'value']);
 
 const escAttr = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const decode = (s) => String(s).replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, (_, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", apos: "'", nbsp: ' ' }[e]));
+const internal = (v) => /^\/(?!\/)/.test(v); // a site path, not //cdn.example.com
 
-// Walks the markup once. Reports problems and returns safe HTML, the visible text, and every link and image.
+// Walks the markup once. Reports problems and returns the HTML (internal links prefixed for previews),
+// the visible text, every internal link and image, and the code inside it (scripts, styles, handlers).
 function parseHtml(html, { mapHref = (h) => h } = {}) {
   const src = String(html || '');
   const problems = [];
   const hrefs = [];
   const images = [];
   const text = [];
+  const scripts = [];
+  const styles = [];
   let out = '';
-  let skipUntil = null;
   let last = 0;
   const re = /<!--[\s\S]*?(?:-->|$)|<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<![^>]*>|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
   let m;
-  const textChunk = (t) => {
-    if (skipUntil) return;
-    out += t.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    text.push(decode(t));
-  };
   while ((m = re.exec(src))) {
-    textChunk(src.slice(last, m.index));
+    const between = src.slice(last, m.index);
+    out += between.replace(/</g, '&lt;');
+    text.push(decode(between));
     last = re.lastIndex;
-    if (!m[2]) { if (!m[0].startsWith('<!--')) problems.push('uses a doctype or CDATA block'); continue; }
+    if (!m[2]) { out += m[0].startsWith('<!--') ? '' : m[0]; continue; }
     const closing = m[1] === '/';
     const tag = m[2].toLowerCase();
-    if (skipUntil) { if (closing && tag === skipUntil) skipUntil = null; continue; }
-    if (DROP_WITH_CONTENT.has(tag)) {
-      problems.push(`uses a <${tag}> tag, which is not allowed`);
-      if (!closing && !/\/\s*$/.test(m[3])) skipUntil = tag;
-      continue;
-    }
-    if (!TAGS.has(tag)) { problems.push(`uses a <${tag}> tag, which is not allowed`); continue; }
-    const realTag = SVG_TAGS.includes(tag) ? m[2] : tag; // keep camelCase such as linearGradient
-    if (closing) { if (!VOID.has(tag)) out += `</${realTag}>`; continue; }
+    if (PAGE_TAGS.has(tag)) { problems.push(`uses a <${tag}> tag, which belongs to the page around the section and would break it`); continue; }
+    if (closing) { if (!VOID.has(tag)) out += `</${m[2]}>`; continue; }
 
     let attrs = '';
     const ar = /([^\s=\/"'>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s"'>]+))?/g;
     let a;
+    let isExternalScript = false;
     while ((a = ar.exec(m[3]))) {
       const name = a[1].toLowerCase();
-      let value = a[2] == null ? '' : a[2].replace(/^["']|["']$/g, '');
-      value = decode(value);
-      if (/^on/.test(name)) { problems.push(`uses an event handler (${name}), and scripts are not allowed`); continue; }
-      if (!okAttr(name)) { problems.push(`uses an attribute "${name}" that is not allowed`); continue; }
-      if (name === 'href') {
-        if (!/^(\/|#)/.test(value.trim())) { problems.push(`links to "${value}", but links must be a site page, a protected page or an #anchor`); continue; }
-        hrefs.push(value.trim());
-        value = mapHref(value.trim());
-      }
-      if (name === 'src') {
-        if (tag !== 'img') { problems.push('uses src outside an <img>'); continue; }
-        images.push(value.trim());
-        if (!/^\/(img|media)\/[\w.-]+$/.test(value.trim())) continue;
-      }
+      let value = a[2] == null ? null : decode(a[2].replace(/^["']|["']$/g, ''));
+      if (value == null) { attrs += ` ${SVG_CASE[name] || a[1]}`; continue; }
+      if (/^on/.test(name)) scripts.push(value);
       if (name === 'style') {
         const cssProblems = checkCss(value, { inline: true });
-        if (cssProblems.length) { problems.push(...cssProblems.map((p) => 'an inline style ' + p)); continue; }
+        if (cssProblems.length) problems.push(...cssProblems.map((p) => 'an inline style ' + p));
       }
-      if (name === 'alt') text.push(value);
-      if (/javascript:|data:|vbscript:/i.test(value)) { problems.push(`puts "${value.slice(0, 40)}" in an attribute`); continue; }
-      attrs += ` ${a[1]}="${escAttr(value)}"`;
+      if ((name === 'href' || name === 'action') && internal(value.trim())) {
+        if (name === 'href') hrefs.push(value.trim());
+        value = mapHref(value.trim());
+      }
+      if (name === 'src' || name === 'poster') {
+        if (tag === 'script') isExternalScript = true;
+        else if (/^\/(img|media)\//.test(value.trim())) images.push(value.trim());
+      }
+      if (TEXT_ATTRS.has(name)) text.push(value);
+      attrs += ` ${SVG_CASE[name] || a[1]}="${escAttr(value)}"`;
     }
-    if (tag === 'img' && !/\ssrc=/.test(attrs)) { problems.push('has an <img> without a library image'); continue; }
-    if (tag === 'a' && !/\shref=/.test(attrs)) attrs += ' href="#"';
-    out += `<${realTag}${attrs}>`;
+    out += `<${m[2]}${attrs}>`;
+
+    if (RAW.has(tag)) {
+      // Take everything up to the matching closing tag as-is.
+      const end = src.toLowerCase().indexOf(`</${tag}`, re.lastIndex);
+      const stop = end < 0 ? src.length : end;
+      const body = src.slice(re.lastIndex, stop);
+      if (tag === 'script' && !isExternalScript) scripts.push(body);
+      if (tag === 'style') {
+        styles.push(body);
+        problems.push(...checkCss(body).map((p) => 'a <style> block ' + p));
+      }
+      out += body + `</${tag}>`;
+      const close = end < 0 ? src.length : src.indexOf('>', end) + 1;
+      re.lastIndex = close || src.length;
+      last = re.lastIndex;
+    }
   }
-  textChunk(src.slice(last));
-  return { html: out, problems: [...new Set(problems)], hrefs, images, text: text.join(' ').replace(/\s+/g, ' ').trim() };
+  const rest = src.slice(last);
+  out += rest.replace(/</g, '&lt;');
+  text.push(decode(rest));
+  for (const s of scripts) problems.push(...checkJs(s).map((p) => 'a script ' + p));
+  return { html: out, problems: [...new Set(problems)], hrefs, images, scripts, styles, text: text.join(' ').replace(/\s+/g, ' ').trim() };
 }
 
 const sanitizeHtml = (html, mapHref) => parseHtml(html, { mapHref }).html;
+
+/* ---------- JavaScript ---------- */
+
+// Agent scripts may do anything except touch the protected notices, and they must at least parse.
+// The words inside their strings are checked for health claims and voice by guard.js.
+const PROTECTED_IN_JS = /['"`][^'"`]*(\.legal|\.rx\b|\.footnote|\.promo-terms|\.footer|\bfooter\b)[^'"`]*['"`]|getElementsByTagName\(\s*['"`]footer|querySelector(All)?\(\s*['"`]footer/i;
+
+function checkJs(code) {
+  const p = [];
+  const s = String(code || '');
+  if (!s.trim()) return p;
+  if (PROTECTED_IN_JS.test(s)) p.push('touches the footer, legal text or prescription notices, which must stay as they are');
+  if (/<\/script/i.test(s)) p.push('contains "</script", which would end the script early');
+  try { new vm.Script(s); } catch (e) {
+    // Modules (import/export) can't be parsed as a classic script; that is allowed.
+    if (!/import|export/.test(e.message)) p.push(`does not parse: ${e.message}`);
+  }
+  return [...new Set(p)];
+}
+
+// The quoted strings inside a script, which may end up as visible text.
+// Every literal is consumed in order (short ones too), so quotes never pair up across two strings.
+const jsStrings = (code) => [...String(code || '').matchAll(/"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'|`((?:[^`\\]|\\.)*)`/g)]
+  .map((m) => (m[1] ?? m[2] ?? m[3] ?? '').replace(/<[^>]*>/g, ' ').trim())
+  .filter((s) => s.length >= 3);
 
 /* ---------- CSS ---------- */
 
@@ -128,12 +157,10 @@ function checkCss(css, { inline = false } = {}) {
   const raw = String(css || '');
   const s = stripCss(raw);
   const p = [];
-  if (/</.test(raw)) p.push('contains "<", which is not allowed in CSS');
-  if (/@import|@font-face|@namespace|@charset/i.test(s)) p.push('imports files or fonts, which is not allowed');
-  if (/expression\s*\(|javascript:|behavior\s*:|-moz-binding/i.test(s)) p.push('contains script-like CSS');
-  for (const u of s.matchAll(/url\(\s*["']?([^"')]*)["']?\s*\)/gi)) {
-    if (!/^\/(img|media)\/[\w.-]+$/.test(u[1].trim())) p.push(`loads "${u[1]}", but only images from the image library (/img/... or /media/...) are allowed`);
-  }
+  if (/</.test(raw)) p.push('contains "<", which would break the page');
+  // Brand rules, not technical ones: imported stylesheets and web fonts can't be checked for colours and fonts.
+  if (/@import/i.test(s)) p.push('uses @import. Paste the CSS in instead, so the brand check can read it');
+  if (/@font-face/i.test(s)) p.push('loads a font. Only the two brand fonts are allowed');
   for (const h of s.matchAll(/#([0-9a-f]{3,8})\b/gi)) {
     let hex = h[1].toLowerCase();
     if (hex.length === 3 || hex.length === 4) hex = hex.slice(0, 3).split('').map((c) => c + c).join('');
@@ -189,4 +216,7 @@ function scopeCss(id, css) {
 
 const cleanGlobalCss = (css) => (braceBalance(css) ? String(css || '').replace(/</g, '') : '');
 
-module.exports = { parseHtml, sanitizeHtml, checkCss, scopeCss, cleanGlobalCss };
+// Agent JavaScript goes inside <script> tags; this keeps a stray "</script" from ending one early.
+const cleanJs = (js) => String(js || '').replace(/<\/script/gi, '<\\/script');
+
+module.exports = { parseHtml, sanitizeHtml, checkCss, checkJs, jsStrings, scopeCss, cleanGlobalCss, cleanJs };

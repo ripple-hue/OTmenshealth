@@ -72,7 +72,14 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
 .go:disabled { opacity: .35; cursor: default; }
 .hint { color: var(--mute); font-size: 12px; margin: 8px 4px 0; }
 
-.stage { display: grid; grid-template-rows: auto 1fr; min-width: 0; min-height: 0; background: var(--ink2); }
+.stage { display: grid; grid-template-rows: auto auto 1fr; min-width: 0; min-height: 0; background: var(--ink2); }
+.cmp { display: flex; align-items: center; gap: 10px; padding: 8px 16px; border-bottom: 1px solid var(--rule); flex-wrap: wrap; }
+.cmp[hidden] { display: none; }
+.cmp .sub { color: var(--mute); font-size: 12.5px; }
+.cmp select { background: var(--ink); color: var(--cream); border: 1px solid var(--rule); border-radius: 99px; padding: 7px 12px; font-size: 13px; max-width: 320px; text-overflow: ellipsis; }
+.cmp select:focus { border-color: var(--honey); outline: 0; }
+.cmp .ghost { padding: 5px 11px; }
+.cmp .cmp-note { margin-left: auto; }
 .status { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--rule); min-height: 56px; flex-wrap: wrap; }
 .status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mute); flex: none; }
 .status.draft .dot { background: var(--honey); box-shadow: 0 0 0 4px rgba(216,188,126,.25); }
@@ -148,6 +155,7 @@ em { font-family: var(--serif); font-style: italic; color: var(--champagne); fon
   </aside>
   <main class="stage">
     <div class="status" id="status"></div>
+    <div class="cmp" id="cmp" hidden></div>
     <div class="frames" id="frames"></div>
   </main>
 </div>
@@ -191,7 +199,7 @@ function draw() {
   if (!S.pages.some((p) => p.path === page)) page = '/';
   $('who').textContent = '· OTMENS';
   seg($('pages'), S.pages.map((p) => ({ v: p.path, label: p.key === 'home' ? 'Home' : p.key.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()), note: p.isNew ? 'new' : '' })), page, (v) => { page = v; draw(); });
-  seg($('views'), [{ v: 'live', label: 'Current site' }, { v: 'draft', label: S.draft ? 'Updated draft' : 'Updated' }, { v: 'split', label: 'Side by side' }], peek ? '' : view, (v) => { view = v; peek = null; draw(); });
+  seg($('views'), [{ v: 'live', label: 'Current site' }, { v: 'draft', label: S.draft ? 'Updated draft' : 'Updated' }, { v: 'split', label: 'Compare' }], peek ? '' : view, (v) => { view = v; peek = null; draw(); });
   seg($('device'), [{ v: 'desktop', label: 'Desktop' }, { v: 'mobile', label: 'Phone' }], device, (v) => { device = v; draw(); });
   $('nLearn').textContent = S.memory.length || '';
   $('nVers').textContent = S.versions.length;
@@ -239,18 +247,55 @@ $('status').onclick = async (e) => {
   draw();
 };
 
+// Side by side compares any two of: the live site, the open draft, and every saved version.
+// Left defaults to the live site; right defaults to the draft (or the newest version when there is none).
+let cmpL = 'live', cmpR = 'auto';
+function cmpOptions() {
+  return [
+    { v: 'live', label: `Live site (version ${S.live})` },
+    ...(S.draft ? [{ v: 'draft', label: 'Your draft (not approved)' }] : []),
+    ...S.versions.map((x) => ({ v: 'v' + x.n, label: `Version ${x.n}${x.n === S.live ? ' · live' : ''}: ${x.summary}` })),
+  ];
+}
+function cmpResolve(w, fallback) {
+  if (w === 'auto') w = S.draft ? 'draft' : 'v' + S.head;
+  return cmpOptions().some((o) => o.v === w) ? w : fallback;
+}
+const cmpLabel = (w) => (w === 'live' ? `Live site · version ${S.live}` : w === 'draft' ? 'Your draft' : `Version ${w.slice(1)}${Number(w.slice(1)) === S.live ? ' · live' : ''}`);
+const cmpVs = (w) => (w === 'live' || w === 'draft' ? w : w.slice(1));
+
+function drawCompare() {
+  const el = $('cmp');
+  if (peek || view !== 'split') { el.hidden = true; return; }
+  el.hidden = false;
+  const L = cmpResolve(cmpL, 'live'), R = cmpResolve(cmpR, S.draft ? 'draft' : 'v' + S.head);
+  const opts = (sel) => cmpOptions().map((o) => `<option value="${esc(o.v)}"${o.v === sel ? ' selected' : ''}>${esc(o.label)}</option>`).join('');
+  el.innerHTML = `<span class="sub">Compare</span><select id="cmpL" aria-label="Left side">${opts(L)}</select>
+    <button class="ghost" id="cmpSwap" title="Swap sides" aria-label="Swap sides">⇄</button>
+    <select id="cmpR" aria-label="Right side">${opts(R)}</select>
+    <span class="sub cmp-note">Gold outline: changed on the right compared with the left</span>`;
+  $('cmpL').onchange = (e) => { cmpL = e.target.value; draw(); };
+  $('cmpR').onchange = (e) => { cmpR = e.target.value; draw(); };
+  $('cmpSwap').onclick = () => { [cmpL, cmpR] = [R, L]; draw(); };
+}
+
 let frameKey = '';
 function drawFrames() {
-  const which = peek ? [['v' + peek, 'Version ' + peek, '']] :
-    view === 'live' ? [['live', 'Current site · version ' + S.live, '']] :
-    view === 'draft' ? [['draft', S.draft ? 'Updated draft' : 'Latest approved · version ' + S.head, 'new']] :
-    [['live', 'Current site · version ' + S.live, ''], ['draft', S.draft ? 'Updated draft' : 'Latest approved · version ' + S.head, 'new']];
+  drawCompare();
+  let which;
+  if (peek) which = [['v' + peek, 'Version ' + peek, '', '']];
+  else if (view === 'live') which = [['live', 'Current site · version ' + S.live, '', '']];
+  else if (view === 'draft') which = [['draft', S.draft ? 'Updated draft' : 'Latest approved · version ' + S.head, 'new', '']];
+  else {
+    const L = cmpResolve(cmpL, 'live'), R = cmpResolve(cmpR, S.draft ? 'draft' : 'v' + S.head);
+    which = [[L, cmpLabel(L), '', '?scroll=0&hl=0'], [R, cmpLabel(R), 'new', `?scroll=0&vs=${cmpVs(L)}`]];
+  }
   const key = JSON.stringify([which, page, device, stamp]);
   if (key === frameKey) return;
   frameKey = key;
   const f = $('frames');
   f.className = 'frames' + (device === 'mobile' ? ' mobile' : '');
-  f.innerHTML = which.map(([w, label, cls]) => `<section class="pane ${cls}"><header><b>${esc(label)}</b><span>${esc(page)}</span></header><div class="scale"><iframe title="${esc(label)}" src="/view/${w}${esc(page)}${which.length > 1 ? '?scroll=0' : ''}"></iframe></div></section>`).join('');
+  f.innerHTML = which.map(([w, label, cls, q]) => `<section class="pane ${cls}"><header><b>${esc(label)}</b><span>${esc(page)}</span></header><div class="scale"><iframe title="${esc(label)}" src="/view/${w}${esc(page)}${esc(q)}"></iframe></div></section>`).join('');
   fit();
   // Side by side: scrolling one pane scrolls the other to the same place.
   const frames = [...f.querySelectorAll('iframe')];
@@ -353,7 +398,7 @@ function drawDrawer() {
   if (drawer === 'versions') {
     $('dTitle').innerHTML = 'Every <em>version.</em>';
     $('dBody').innerHTML = S.versions.map((v) => `<div class="card${v.n === S.live ? ' live' : ''}"><h3>Version ${v.n}${v.n === S.live ? '<span class="tag live">Live</span>' : ''}${v.n === S.head && v.n !== S.live ? '<span class="tag">Approved, not live</span>' : ''}</h3><p>${esc(v.summary)}</p><p class="when">Saved ${when(v.createdAt)}${v.pushedAt ? ' · last pushed live ' + when(v.pushedAt) : ''}</p>
-      <div class="row"><button data-a="peek" data-n="${v.n}">View</button>${v.n !== S.live ? `<button data-a="push" data-n="${v.n}">Push to live site</button>` : ''}${v.n !== S.head ? `<button data-a="restore" data-n="${v.n}">Restore as newest</button>` : ''}</div></div>`).join('');
+      <div class="row"><button data-a="peek" data-n="${v.n}">View</button><button data-a="compare" data-n="${v.n}">Compare</button>${v.n !== S.live ? `<button data-a="push" data-n="${v.n}">Push to live site</button>` : ''}${v.n !== S.head ? `<button data-a="restore" data-n="${v.n}">Restore as newest</button>` : ''}</div></div>`).join('');
     $('dFoot').innerHTML = `Every approved change is kept here. <button class="link" data-a="reset">${confirmReset ? 'Click again to wipe everything and start the demo over' : 'Reset the demo'}</button>`;
   } else if (drawer === 'learned') {
     $('dTitle').innerHTML = 'What I’ve <em>learned.</em>';
@@ -367,6 +412,7 @@ $('drawer').onclick = async (e) => {
   if (!b) return;
   const a = b.dataset.a, n = Number(b.dataset.n);
   if (a === 'peek') { peek = n; drawer = null; }
+  else if (a === 'compare') { cmpL = 'v' + n; cmpR = 'auto'; view = 'split'; peek = null; drawer = null; }
   else if (a === 'push') { await call('push', { n }); toast(`Version ${n} is live.`); }
   else if (a === 'restore') await call('restore', { n });
   else if (a === 'forget') await call('forget', { id: b.dataset.id });

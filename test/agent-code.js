@@ -2,6 +2,7 @@
 // Usage: npm test   (or: node test/agent-code.js [DATA_DIR to store the takeover as a draft for preview])
 const path = require('path');
 const repo = path.join(__dirname, '..');
+if (process.argv[2]) process.env.DATA_DIR = path.resolve(process.argv[2]); // before src/store is loaded
 const { applyOps } = require(path.join(repo, 'src/agent'));
 const { validate } = require(path.join(repo, 'src/guard'));
 const { renderPage } = require(path.join(repo, 'src/render'));
@@ -112,7 +113,6 @@ console.log(fails ? `\n${fails} FAILED` : '\nAll passed');
 
 // Optionally store the takeover as an open draft so the Studio can preview it.
 if (process.argv[2]) {
-  process.env.DATA_DIR = process.argv[2];
   const store = require(path.join(repo, 'src/store'));
   store.init(true);
   const st = store.state();

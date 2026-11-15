@@ -196,6 +196,20 @@ function view(res, which, rest, query) {
   else if (/^v\d+$/.test(which) && s.versions.find((v) => v.n === Number(which.slice(1)))) content = store.version(Number(which.slice(1)));
   else return send(res, 404, 'text/plain; charset=utf-8', 'Not found');
 
+  // ?vs=<live|head|draft|N> highlights what differs from that version (used by the compare view).
+  const vs = query.get('vs');
+  if (vs && query.get('hl') !== '0') {
+    const n = Number(vs);
+    const base = vs === 'live' ? store.version(s.live)
+      : vs === 'head' ? store.version(s.head)
+      : vs === 'draft' ? (s.draft ? s.draft.content : store.version(s.head))
+      : Number.isInteger(n) && s.versions.find((v) => v.n === n) ? store.version(n) : null;
+    if (base) {
+      const d = diff(base, content);
+      highlight = (key) => d.pages[key] || [];
+    }
+  }
+
   const p = '/' + rest.replace(/\/+$/, '');
   const base = '/view/' + which;
   const key = Object.keys(content.pages).find((k) => content.pages[k].path === p);

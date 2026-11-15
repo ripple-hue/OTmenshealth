@@ -25,7 +25,9 @@ If you finish and the page has the same sections in the same order with the same
 - **Create contrast between bands.** Put an `ink` band where you want weight and `champagne` where you want warmth. Never run more than two light bands in a row on a redesigned page.
 - **Use extremes of scale.** Follow something huge with something quiet. Five medium sections read as a template.
 - **Break the grid.** `staggered` steps, `expand` photo panels, `tilted` membership cards, `flip` on a feature, or a custom section with overlap, offset or an oversized figure.
-- **Add movement, with restraint.** Smooth scrolling is already on. Add one signature motion moment per page (a marquee, a slow reveal of the offer, a gentle parallax on one photo) and, at most, a quiet fade-and-rise as sections enter. Motion should feel expensive and calm, never busy.
+- **Use motion.** Smooth scrolling is already on. Sections can rise and fade in as they enter, headlines can reveal word by word, photos can drift with parallax, the offer figure can grow or count up as it scrolls into view, a band can pin while its content changes. Campaigns should have at least one memorable motion moment. Make it smooth and deliberate: motion that feels expensive, never jittery or gimmicky.
+- **Use colour and effects when they serve the idea.** Beyond the brand's golds, browns and neutrals, a campaign can bring in one accent colour (a deep red for Valentine's, an evergreen for Christmas) in all its shades. Gradients, glass and blur, large soft shadows, glows on the accent, layered depth, oversized type and bold contrast are all available. Pick what makes the idea land.
+- **Campaigns can depart from the everyday look.** A Black Friday page can go darker and more dramatic than the usual site; a Christmas page warmer and richer. What must stay recognisable: the OTMENS logo, the two typefaces, the italic serif accent, the voice and the quality.
 - **Reorder for an argument.** Strongest claim, then proof, then the offer, then the ask.
 - **Cut.** If two sections make the same point, keep the stronger one.
 - **End with weight.** The `image` closing panel or a custom close finishes a page far harder than the plain one.
@@ -35,31 +37,30 @@ If you finish and the page has the same sections in the same order with the same
 ## Rules on the boldest page
 
 - One focal point per screen, and one primary action per page, repeated.
-- Hierarchy comes from size and weight, not colour alone.
-- Brand tokens only. Bold means composition and scale, never new colours, fonts or effects.
+- Hierarchy comes from size and weight first; colour and effects support it.
+- The two brand typefaces only, but use their full range: any size, weight and style, extreme scale contrasts.
 - Generous space. Crowding reads as cheap.
-- The italic gold serif accent is the brand's signature. One per headline, never decoration.
+- The italic serif accent is the brand's signature. Usually one per headline; two at most, when a headline really has two ideas.
 - **Design the phone version on purpose, not by collapse.** On a phone, the idea's key visual (a giant figure, a card, a photo) sits directly with the headline: above it, or immediately after it, before the body copy and buttons. Never let it fall to the bottom of a section after the buttons, and never leave an empty gap taller than about 80px where a desktop column used to be. If the visual doesn't work small, make a smaller phone version of it rather than pushing it down.
 - **In a campaign hero, the occasion's name is the loudest thing on the screen.** "Black Friday", "Christmas", "Easter" set huge, bigger than any photo or card, read first on desktop and on a phone. The offer comes straight after it, still large. A photo can support it but never outshouts it.
 - **Small print stays readable.** Terms, notes and labels are at least 13px, at full contrast for their background: dark text on gold or champagne, light text on ink. Never pale or semi-transparent text on gold.
 
 ## Craft (adapted from Apple's design principles, via Emil Kowalski's apple-design skill, MIT)
 
-- **Decide the feeling, then reinforce it everywhere.** For OTMENS the feeling is calm and confident. Every choice of scale, spacing, motion and colour should serve it. Delight is the result of getting everything else right, never confetti added on top.
+- **Decide the feeling, then reinforce it everywhere.** For everyday OTMENS pages the feeling is calm and confident; a campaign can be bold, dramatic or celebratory. Decide which, then make every choice of scale, spacing, motion and colour serve it. Delight comes from getting everything else right, not from confetti added on top.
 - **Simplicity, not minimalism.** Remove what doesn't serve the page's purpose, but don't strip context people need: a price with its billing terms is simpler than a bare number. Every element earns its place, and the most important thing on each screen is the most obvious.
 - **Nothing is random.** Every spacing, size, alignment and timing value is a choice you could defend. Misaligned edges, uneven gaps and jittery motion read as carelessness, and carelessness is what "AI slop" looks like.
-- **Calm motion only.** No full-screen moving backgrounds, no slow looping or pulsing animation, no sudden jumps in brightness. Large things that move should move little.
+- **Motion that feels good.** Smooth easing, sensible durations (most transitions 0.3–0.8s), nothing that loops endlessly or flashes. Big moves are fine when they're deliberate and tied to scroll or to what the visitor does.
 - **Soft edges where content meets floating elements.** Where content scrolls under the sticky nav or a sticky bar, prefer a soft fade over a hard 1px divider line.
 
 ## Never ship
 
-- Gradient text, neon, or purple-to-blue gradients
-- A checkmark in front of every bullet, emoji used as icons
-- Three identical cards (icon, title, two lines) as a features section
-- Bento grids as the default layout
-- Pill badges above every heading
-- Glass blur cards and drop shadows on everything
-- Everything centred, every section the same height and padding
+These are the giveaways of generic, template and AI-made sites:
+
+- Emoji used as icons, or a tick in front of every bullet
+- Neon colours, purple-to-blue "AI" gradients
+- The same effect on everything (every card glassy, every section shadowed): effects are for emphasis, not wallpaper
+- Every section the same height, padding and layout
 - Stock-looking men laughing at phones, doctors with crossed arms, floating pills on pastel backgrounds
 
 ## Imagery

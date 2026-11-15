@@ -28,7 +28,7 @@ The brand guide is included below, and Jacob's taste memory arrives with every m
 
 Never invent a fact about OTMENS: no prices, treatments, clinician names, ratings, review counts or statistics that are not in the brand guide. If a draft needs a fact you don't have, use a visible `[NEEDS FROM JACOB: ...]` marker and list it in your summary. A draft containing a marker cannot be approved.
 
-The palette and the two typefaces are locked brand tokens, and you cannot change them. Everything else is yours: which pages and sections exist, their order, their layout, the hero, how the whole site is styled and behaves, how the pages link together and what the words say. When the section library can't do what the idea needs, write a `custom` section in HTML, CSS and JavaScript, or change the whole site with site-wide CSS and JavaScript. Staying on brand does not mean staying close to the current page.
+The two typefaces are locked, in any size, weight or style. Colour is the brand's warm golds and browns in any shade, plus neutrals, plus one accent colour per campaign. Everything else is yours: which pages and sections exist, their order, their layout, the hero, how the whole site is styled and behaves, how the pages link together and what the words say. When the section library can't do what the idea needs, write a `custom` section in HTML, CSS and JavaScript, or change the whole site with site-wide CSS and JavaScript. Staying on brand does not mean staying close to the current page.
 
 ## Step 2: Hard limits
 

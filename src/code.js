@@ -61,6 +61,7 @@ function parseHtml(html, { mapHref = (h) => h } = {}) {
       if (value == null) { attrs += ` ${SVG_CASE[name] || a[1]}`; continue; }
       if (/^on/.test(name)) scripts.push(value);
       if (name === 'style') {
+        styles.push(value); // counted for the site-wide accent check
         const cssProblems = checkCss(value, { inline: true });
         if (cssProblems.length) problems.push(...cssProblems.map((p) => 'an inline style ' + p));
       }
@@ -129,13 +130,43 @@ const jsStrings = (code) => [...String(code || '').matchAll(/"((?:[^"\\\n]|\\.)*
 
 /* ---------- CSS ---------- */
 
-// The palette from brand/brand-guide.md, plus the tints already used in public/styles.css.
-const PALETTE = {
-  '17130e': 'ink', 'f7f1e6': 'cream', 'ebddb8': 'champagne', 'd8bc7e': 'honey', '7a5e2c': 'bronze', 'fdfbf7': 'paper',
-  'f0e2bc': 'gold tint', 'f3e8cb': 'gold tint', 'f0e4c4': 'gold tint', 'f8f0dc': 'gold tint', '221d16': 'ink tint', '2e281f': 'ink tint',
-};
-const hexToRgb = (h) => [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)).join(',');
-const RGB_OK = new Set([...Object.keys(PALETTE).map(hexToRgb), '0,0,0', '255,255,255']);
+// Colour freedom (owner's decision, 15 November 2026: "give it more freedom"). Allowed:
+//   - any shade or tint of the brand's warm family (the palette's ink, bronze, honey, champagne and cream
+//     all sit at hues of about 35–45°; anything from 20° to 60° counts as the brand family),
+//   - any neutral (black, white, greys, near-black, near-white),
+//   - ONE campaign accent hue family (e.g. a deep red for Valentine's, an evergreen for Christmas),
+//     counted across the whole site in guard.js with accentHues().
+const BRAND_HUES = [20, 60];
+function hsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+// 'neutral', 'brand' or an accent hue in degrees.
+function classify([h, s, l]) {
+  if (s < 0.12 || l < 0.06 || l > 0.97) return 'neutral';
+  if (h >= BRAND_HUES[0] && h <= BRAND_HUES[1]) return 'brand';
+  return Math.round(h);
+}
+// Every colour written in a piece of CSS, as [hue, saturation, lightness].
+function cssColours(s) {
+  const out = [];
+  for (const h of s.matchAll(/#([0-9a-f]{3,8})\b/gi)) {
+    let hex = h[1].toLowerCase();
+    if (![3, 4, 6, 8].includes(hex.length)) continue;
+    if (hex.length <= 4) hex = hex.slice(0, 3).split('').map((c) => c + c).join('');
+    out.push(hsl(parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)));
+  }
+  for (const r of s.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/gi)) out.push(hsl(+r[1], +r[2], +r[3]));
+  for (const c of s.matchAll(/hsla?\(\s*(-?[\d.]+)(?:deg)?[\s,]+([\d.]+)%[\s,]+([\d.]+)%/gi)) out.push([((+c[1] % 360) + 360) % 360, +c[2] / 100, +c[3] / 100]);
+  return out;
+}
+const accentHues = (css) => cssColours(stripCss(css)).map(classify).filter((x) => typeof x === 'number');
+const hueGap = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+const NEUTRAL_NAMES = /^(black|white|gray|grey|silver|gainsboro|whitesmoke|snow|ghostwhite|dimgray|dimgrey|darkgray|darkgrey|lightgray|lightgrey)$/i;
 const FONTS = new Set(['var(--sans)', 'var(--serif)', 'inherit', 'initial', 'helvetica neue', 'inter tight', 'instrument serif', 'helvetica', 'arial', 'sans-serif', 'georgia', 'serif']);
 const NAMED = 'aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen'.split(' ');
 const NAMED_RE = new RegExp(`(^|[\\s,(:])(${NAMED.join('|')})(?=[\\s,);!]|$)`, 'i');
@@ -161,19 +192,12 @@ function checkCss(css, { inline = false } = {}) {
   // Brand rules, not technical ones: imported stylesheets and web fonts can't be checked for colours and fonts.
   if (/@import/i.test(s)) p.push('uses @import. Paste the CSS in instead, so the brand check can read it');
   if (/@font-face/i.test(s)) p.push('loads a font. Only the two brand fonts are allowed');
-  for (const h of s.matchAll(/#([0-9a-f]{3,8})\b/gi)) {
-    let hex = h[1].toLowerCase();
-    if (hex.length === 3 || hex.length === 4) hex = hex.slice(0, 3).split('').map((c) => c + c).join('');
-    if (hex.length === 8) hex = hex.slice(0, 6);
-    if (!PALETTE[hex]) p.push(`uses the colour #${h[1]}, which is not a brand colour`);
-  }
-  for (const r of s.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/gi)) {
-    if (!RGB_OK.has(`${r[1]},${r[2]},${r[3]}`)) p.push(`uses the colour rgb(${r[1]}, ${r[2]}, ${r[3]}), which is not a brand colour`);
-  }
-  if (/\b(hsla?|hwb|lab|lch|oklab|oklch|color)\(/i.test(s)) p.push('uses a colour function other than the brand variables, hex or rgba');
+  // Colours themselves are free within the brand family, neutrals and one accent (checked site-wide in
+  // guard.js). Here only the notations that can't be read are refused.
+  if (/\b(hwb|lab|lch|oklab|oklch|color)\(/i.test(s)) p.push('uses a colour notation the brand check can\'t read. Write colours as hex, rgb() or hsl()');
   for (const d of s.matchAll(/(^|[;{\s])((?:background|background-color|color|border(?:-[a-z]+)*|outline(?:-color)?|fill|stroke|box-shadow|text-shadow|stop-color|caret-color|accent-color|text-decoration(?:-color)?|column-rule(?:-color)?)\s*:\s*)([^;{}]*)/gi)) {
     const named = d[3].match(NAMED_RE);
-    if (named) p.push(`uses the named colour "${named[2]}", which is not a brand colour`);
+    if (named && !NEUTRAL_NAMES.test(named[2])) p.push(`uses the named colour "${named[2]}". Write colours as hex, rgb() or hsl() so the brand check can read them`);
   }
   if (/(^|[;{\s])font\s*:/i.test(s)) p.push('uses the "font" shorthand. Set font-family, font-size and font-weight separately');
   for (const f of s.matchAll(/font-family\s*:\s*([^;{}]*)/gi)) {
@@ -219,4 +243,4 @@ const cleanGlobalCss = (css) => (braceBalance(css) ? String(css || '').replace(/
 // Agent JavaScript goes inside <script> tags; this keeps a stray "</script" from ending one early.
 const cleanJs = (js) => String(js || '').replace(/<\/script/gi, '<\\/script');
 
-module.exports = { parseHtml, sanitizeHtml, checkCss, checkJs, jsStrings, scopeCss, cleanGlobalCss, cleanJs };
+module.exports = { parseHtml, sanitizeHtml, checkCss, checkJs, jsStrings, scopeCss, cleanGlobalCss, cleanJs, accentHues, hueGap };

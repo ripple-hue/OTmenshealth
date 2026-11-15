@@ -22,7 +22,7 @@ A men's health membership. Labs, providers, prescriptions and supplements in one
 
 Quiet luxury, like an upscale pharmacy brand. Not the dark, aggressive men's-health style. Light pages, with one dark hero on the home page.
 
-- Ink `#17130E`, cream `#F7F1E6`, champagne `#EBDDB8`, honey gold `#D8BC7E`, bronze `#7A5E2C`.
+- Ink `#17130E`, cream `#F7F1E6`, champagne `#EBDDB8`, honey gold `#D8BC7E`, bronze `#7A5E2C`. Their lighter and darker shades and neutrals are part of the palette; a campaign may add one accent colour of its own.
 - Headlines in light Helvetica Neue. Exactly one word or short phrase per headline is set in italic gold serif. Mark it with asterisks: `Own Your *Health.*` This is the most recognisable part of the brand. Headlines end with a full stop.
 - Small labels (eyebrows) are short, in spaced capitals with a gold dot: "Getting started", "Choose your path".
 - Soft rounded cards, a pill-shaped nav, gold buttons, light shadows.

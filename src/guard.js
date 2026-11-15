@@ -40,7 +40,7 @@ const SPEC = {
       'Fields: html (the inner markup of the section), css (styles for this section only), js (JavaScript for this section), theme (optional background), dark: true (dark background and light text; when it opens a page the floating nav turns dark over it), anchor (optional id for #links).',
       'html: any HTML and inline SVG, including forms, inputs, buttons, iframes, video and canvas. Not page-level tags (<html>, <head>, <body>, <base>, <meta>). Internal links must go to a site page, a protected page or an #anchor; outside links (https://...) are fine. <img> can use the image library or any https:// image. Use <em> for the one italic gold accent word in a headline, not asterisks. Put scripts in the js field, not in <script> tags.',
       'js: plain JavaScript that runs once the page and its libraries have loaded, with this section element available as `section`. Use it for interaction and motion: tabs, accordions, sliders, a "find your plan" quiz, counters, scroll effects. It must parse, must not touch the footer, legal text or prescription notices, and every quoted string in it is checked as visible text. There is no server: a form can\'t store answers anywhere, so never collect personal or health information.',
-      'css: top-level declarations style the section itself; rules inside it are automatically scoped to this section, so write ".offer { ... }" not a page-wide selector. @media and @keyframes work. Colours only from the brand: var(--ink), var(--cream), var(--paper), var(--champagne), var(--honey), var(--bronze), var(--ink-soft), var(--line), var(--gold-grad), or the palette hex values and rgba() of them (rgba(0,0,0,a) is allowed for shadows). Fonts only var(--sans) and var(--serif); set font-family, font-size and font-weight separately, not the font shorthand. No @import or @font-face. url() can load images.',
+      'css: top-level declarations style the section itself; rules inside it are automatically scoped to this section, so write ".offer { ... }" not a page-wide selector. @media and @keyframes work. Colours: the brand variables (var(--ink), var(--cream), var(--paper), var(--champagne), var(--honey), var(--bronze), var(--ink-soft), var(--line), var(--gold-grad)) and any lighter or darker shade of the brand\'s warm golds and browns; any neutral (black, white, greys); gradients; and ONE campaign accent colour family across the whole site (for example a deep red, or an evergreen), in as many shades of that one hue as you like. Write colours as hex, rgb() or hsl(). Fonts only var(--sans) and var(--serif), in any weight, size or style; set font-family, font-size and font-weight separately, not the font shorthand. No @import or @font-face. url() can load images.',
       'Required: put the section\'s text and buttons inside <div class="wrap">…</div> (the centred page width with side margins), or they run to the edge of the screen. Full-bleed images and backgrounds go outside it. Brand classes you can reuse inside it: wrap (centred page width), display (huge light headline), title (section headline), title-xl, eyebrow with <span class="dot"></span> inside, lede (body text), kicker (small spaced capitals), btn btn-gold (the primary gold button), btn btn-line, text-link, chips (row of pill <span>s). The page nav floats over the top 90px of the first section on a page, so a first section needs at least 150px of top padding.',
       'It must work at 375px wide: use clamp() for big type and a @media (max-width: 900px) rule for multi-column layouts. Every visible word is checked by the same health-claim and brand-voice rules as any other section.',
     ].join(' '),
@@ -76,7 +76,7 @@ const SLOP = [
   [/!/, 'uses an exclamation mark'],
 ];
 
-const LIMITS = { headline: 70, eyebrow: 40, title: 60 };
+const LIMITS = { headline: 100, eyebrow: 50, title: 70 }; // loosened 15 November 2026 (owner: more freedom)
 const SKIP_KEYS = new Set(['id', 'type', 'href', 'image', 'anchor', 'visual', 'tier', 'path', 'code', 'variant', 'theme', 'tag', 'css', 'scripts']);
 
 // The image library: the photos in public/img plus every image generated and approved by the image check.
@@ -166,6 +166,7 @@ function validate(content, prev) {
   //    outside resources are allowed since 15 November 2026, by the owner's decision.)
   const k = [];
   const customLinks = [];
+  const accents = []; // [hue, where] for every colour outside the brand family and the neutrals
   const tooLong = (what, v, limit) => (typeof v === 'string' && v.length > limit ? [`${what} is too long (${v.length} characters, limit ${limit}).`] : []);
   for (const [key, page] of Object.entries(pages)) {
     for (const sec of page.sections || []) {
@@ -176,6 +177,7 @@ function validate(content, prev) {
       const parsed = code.parseHtml(sec.html);
       k.push(...parsed.problems.map((x) => `The HTML of ${where} ${x}.`));
       if (sec.css) k.push(...code.checkCss(sec.css).map((x) => `The CSS of ${where} ${x}.`));
+      for (const css of [sec.css || '', ...parsed.styles]) accents.push(...code.accentHues(css).map((h) => [h, where]));
       if (sec.js) k.push(...code.checkJs(sec.js).map((x) => `The JavaScript of ${where} ${x}.`));
       if (!parsed.text && !sec.js) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
       // Without the page container, text runs to the very edge of the screen (seen 15 November: a
@@ -187,7 +189,16 @@ function validate(content, prev) {
   }
   if (g.css != null) {
     if (typeof g.css !== 'string') k.push('The site-wide CSS must be text.');
-    else k.push(...tooLong('The site-wide CSS', g.css, CODE_LIMITS.globalCss), ...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
+    else {
+      k.push(...tooLong('The site-wide CSS', g.css, CODE_LIMITS.globalCss), ...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
+      accents.push(...code.accentHues(g.css).map((h) => [h, 'the site-wide CSS']));
+    }
+  }
+  // One campaign accent: every colour outside the brand's warm family and the neutrals must be one hue family.
+  if (accents.length) {
+    const [first] = accents[0];
+    const stray = accents.find(([h]) => code.hueGap(h, first) > 35);
+    if (stray) k.push(`The draft uses more than one accent colour (hue ${first}° in ${accents[0][1]} and hue ${stray[0]}° in ${stray[1]}). Besides the brand's golds, browns and neutrals, pick ONE accent colour for the campaign and use only its shades.`);
   }
   if (g.js != null) {
     if (typeof g.js !== 'string') k.push('The site-wide JavaScript must be text.');
@@ -238,7 +249,7 @@ function validate(content, prev) {
       if (m) b.push(`"${m[0]}" on the ${where(t.trail)} ${why}.`);
     }
     if (LIMITS[t.key] && t.text.length > LIMITS[t.key]) b.push(`A ${t.key} on the ${where(t.trail)} is too long (${t.text.length} characters, limit ${LIMITS[t.key]}).`);
-    if (t.key === 'headline' && (t.text.match(/\*/g) || []).length > 2) b.push(`A headline on the ${where(t.trail)} has more than one accent word.`);
+    if (t.key === 'headline' && (t.text.match(/\*/g) || []).length > 4) b.push(`A headline on the ${where(t.trail)} has more than two accent words.`);
     if (/\*/.test(t.text) && t.key !== 'headline' && t.key !== 'js' && t.key !== 'html') b.push(`Accent asterisks appear outside a headline on the ${where(t.trail)}.`);
   }
   add('Health-claim rules', c);

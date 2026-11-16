@@ -9,6 +9,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { validate, SPEC, THEME_DOC, GLOBAL_CSS_DOC, images: imageLibrary, LOCKED } = require('./guard');
 const images = require('./images');
 const store = require('./store');
+const designCheck = require('./design-check');
 
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5-5';
 const EFFORT = process.env.AGENT_EFFORT || 'medium';
@@ -263,6 +264,9 @@ async function run({ message, rejected, draft, current, memory, version, history
   let attempt = 0;
   let cutOffs = 0; // replies cut off at the length limit
   let nudged = false; // asked once for missing operations
+  let design = null; // anti-slop design check result: {ran, found, remaining}
+  let designAsked = false; // design findings are sent back at most once
+  let passed = null; // the last draft that passed every hard check
   for (let turn = 0; attempt <= MAX_REPAIRS && turn < MAX_TURNS; turn++) {
     let res;
     const request = {
@@ -374,7 +378,24 @@ async function run({ message, rejected, draft, current, memory, version, history
       report = null;
       applied = false;
     }
-    if (!errors.length) return { ...out, site, report, ops: ops.length, repairs: attempt };
+    if (!errors.length) {
+      // The draft passes the hard checks. Run the anti-slop design check once; if it finds new giveaways
+      // and a repair is left, send them back to be fixed. The check advises, it never blocks a draft.
+      const check = designCheck.review(site, current);
+      if (!design) design = { ran: check.ran, found: check.issues.length, remaining: check.issues.length };
+      else design.remaining = check.issues.length;
+      if (check.issues.length && !designAsked && attempt < MAX_REPAIRS) {
+        designAsked = true;
+        passed = { site, report, ops: ops.length }; // if the design fixes go wrong, this draft still stands
+        onProgress('Checking the design for anything generic');
+        messages.push({ role: 'assistant', content: res.content });
+        messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: call.id, is_error: true,
+          content: `Your draft passes the brand and compliance checks, but the anti-slop design check (Impeccable's rules) found these giveaways of generic, AI-made design that your draft added. Fix each one the designed way, not by deleting the idea, and call respond_to_jacob again with only the operations that fix them.\n- ${designCheck.describe(check.issues).join('\n- ')}` }] });
+        attempt++;
+        continue;
+      }
+      return { ...out, site, report, ops: ops.length, repairs: attempt, design };
+    }
 
     messages.push({ role: 'assistant', content: res.content });
     messages.push({
@@ -388,6 +409,8 @@ async function run({ message, rejected, draft, current, memory, version, history
     });
     attempt++;
   }
+  // The design fixes didn't come through cleanly: keep the draft that passed the hard checks.
+  if (passed) return { ...out, ...passed, repairs: attempt, design };
   return { ...out, message: 'I couldn’t get that change past the brand and compliance checks, so I haven’t drafted it. Tell me what matters most about it and I’ll take another run.', site: null, report, failed: true, ops: 0 };
 }
 

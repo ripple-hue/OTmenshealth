@@ -5,6 +5,24 @@ Snapshot as of 15 November 2026, at commit `fd47950` on `main`, deployed to both
 ## Changed on 16 November 2026 (not yet deployed)
 
 - **The agent's instructions were rewritten from scratch (decision 23).** The owner said the agent wasn't meeting his requirements (a New Year draft reused an AI image while generation was off). `agent/SKILL.md` and the four always-on skills were rewritten around his eleven requirements: a campaign changes the whole site; the occasion's name is the hero headline, the largest text on the site; the home page, a landing page, pricing, the nav button and the announcement bar all carry it; agency quality, defined concretely ("What not AI slop means here"); design freedom with fonts locked; real photos only while generation is off (type, colour and motion instead); clean at 375 px; real facts; hard limits first; visible learning; and one priority order (hard limits, then brand facts and taste memory, then core, then skills). Contradictions and duplicated rules between the core, the skills and the Studio rules in `src/agent.js` were removed; the Studio rules now only describe the site document, the library and the reply format. The imagery skill is loaded only when image generation is on (`activeSkills()` in `src/agent.js`). Prompt about 9,100 tokens (was about 14,400). `npm test` passes. Not yet run with the live agent.
+- **Anti-slop toolkit (decision 25).**
+  - **Impeccable design check** (`src/design-check.js`, the `impeccable` npm package, Apache 2.0). After a draft passes the hard checks, every page of the draft and of the live site is rendered and scanned with Impeccable's fixed rules: no AI and no API cost, about 1 second. Only findings the draft adds are reported, and once they go back to the agent to fix. The check advises and never blocks. If the fix breaks a hard check, the draft that passed is kept.
+    - Rules that contradict the brand are off: Instrument Serif, cream backgrounds, the dotted eyebrow. So is `cramped-padding`, which the static scan gets wrong here.
+    - Agent CSS is flattened for the scan only, because the scanner can't read nested CSS.
+    - The Studio chat shows "Anti-slop check passed", "fixed N generic patterns" or "N things to look at".
+    - Set `DESIGN_CHECK=off` to disable it.
+    - The linux-x64 binary comes from the package's optional dependencies; not yet confirmed running on Railway.
+    - Static mode only: layout rules that need a real browser (text overflow, content hidden at rest) aren't run.
+  - **Humanizer writing patterns** (blader/humanizer, MIT, built on Wikipedia's "Signs of AI writing").
+    - In code: eight new phrase checks in `SLOP` in `src/guard.js`: AI vocabulary, advertising clichés, staged run-ups, "not X, but Y" and "Not a X. A Y.", "serves as"/"boasts", dashes as connectors, chatbot phrasing.
+    - In the copywriting skill: the patterns too loose for a regex.
+    - The live site passes all of them.
+  - **Fluid type and space scale** (Utopia method): `--step-n1`…`--step-8` and `--space-3xs`…`--space-4xl`, `--space-section`, added at the end of `public/styles.css`. Existing site styles are unchanged. The design and development skills tell the agent to use them.
+  - **Split-type** (ISC licence) for kinetic headlines, with a Motion recipe in the development skill. Checked in headless Chrome: words animate in, the `<em>` accent survives, it fits at phone width and shows under reduced motion.
+  - **Bug fixed:** section and site JavaScript run inside a function, but the parse check treated them as top-level code, so the skill's own `if (!el) return` failed the check. Now parsed as wrapped (`checkJs(code, true)`).
+  - The campaign rule's "statement or marquee" is now "statement band" (Impeccable flags auto-scrolling marquees).
+  - Tests: four new (three design-check loop cases, early return); all pass.
+  - Not yet run with the live agent.
 - **Lenis and Motion now start together, before the agent's code (decision 24).** The motion setup moved from the end of the page into `<head>` (`motionInit` in `src/render.js`), so `window.lenis` exists when section scripts run (before, it didn't: section scripts ran first). When Motion is loaded, Lenis runs on Motion's frame loop (`autoRaf: false` plus `Motion.frame.update`), Lenis's documented Motion setup. With reduced motion, Lenis stays off and `MotionGlobalConfig.skipAnimations` makes every Motion animation jump to its end. The development skill says so and forbids hiding content in CSS while waiting for a script. Tested in headless Chrome with Motion 14.14.0 from the CDN and a parallax plus reveal section, in three modes (no Lenis, Lenis on its own clock, Lenis on Motion's clock):
   - Parallax positions were identical in all three, so Lenis doesn't change Motion's results.
   - `inView` reveals fired.
@@ -85,7 +103,7 @@ README.md            Short run guide (partly out of date on the section library)
 docs/                These documents.
 ```
 
-Dependencies: Node 20 or later, three npm packages: `@anthropic-ai/sdk`; `sharp` (converts generated images to WebP; it ships prebuilt native binaries); `lenis` (smooth scrolling, MIT; its browser file is served from `node_modules`). No framework, no build step, no database.
+Dependencies: Node 20 or later, four npm packages: `@anthropic-ai/sdk`; `sharp` (converts generated images to WebP; it ships prebuilt native binaries); `lenis` (smooth scrolling, MIT; its browser file is served from `node_modules`); `impeccable` (the anti-slop design check, Apache 2.0; runs a prebuilt native binary for the platform). No framework, no build step, no database.
 
 ## How it works
 

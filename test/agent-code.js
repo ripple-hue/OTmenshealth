@@ -167,6 +167,11 @@ expect('global.scripts load in the head, deferred', /<script src="https:\/\/cdn\
 expect('motion starts before any agent code (Lenis exists when section js runs)', page.indexOf('new Lenis(') < page.indexOf('</head>') && page.indexOf('new Lenis(') < page.indexOf('section.dataset.ready'));
 expect('Lenis runs on the Motion frame loop when Motion is loaded', page.includes('M.frame.update(') && page.includes('autoRaf:!sync'));
 expect('reduced motion makes Motion animations jump to the end', page.includes('MotionGlobalConfig.skipAnimations=true'));
+{
+  const early = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'early', type: 'custom', html: '<div class="wrap"><p>Hi there</p></div>', js: 'var el = section.querySelector(".x"); if (!el) return; el.hidden = false;' } }], current);
+  const r = validate(early, current);
+  expect('an early `return` in section js is allowed (it runs inside a function)', !r.errors.some((e) => /parse/.test(e)), r.errors.join(' | '));
+}
 expect('global.js is on the page', page.includes('window.__site = 1;'));
 expect('Lenis smooth scrolling is on by default', page.includes('/vendor/lenis.min.js') && page.includes('new Lenis('));
 const noSmooth = renderPage(applyOps(current, [{ op: 'update_global', fields: { smoothScroll: false } }], current), 'home');

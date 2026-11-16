@@ -63,6 +63,9 @@ em { font-style: normal; color: inherit; }
 .learned { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.4); }
 .learned .label { margin-top: 0; }
 .learned p + p, .plain p + p { margin-top: 4px; }
+.msg .slop { margin: 10px 0 14px; font-size: 12px; color: rgba(255,255,255,.75); }
+.msg .slop::before { content: "✓ "; color: var(--ok); }
+.msg .slop.warn::before { content: "! "; color: #D6A85B; }
 .plain { color: var(--mute); font-size: 13px; }
 .dots { display: flex; align-items: center; gap: 10px; color: var(--mute); }
 .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--honey); animation: pulse 1.2s infinite; }
@@ -346,6 +349,9 @@ function drawChat() {
     else if (m.role === 'system') h += `<div class="msg system">${esc(m.text)}</div>`;
     else h += `<div class="msg agent${m.error || m.failed ? ' err' : ''}">${m.skills?.length ? `<p class="skills">${m.skills.map((k) => `<span>${esc(SKILL_NAMES[k] || k)}</span>`).join('')}</p>` : ''}<p>${esc(m.text)}</p>
       ${m.images?.length ? `<p class="label">New images</p><p class="thumbs">${m.images.map((src) => `<a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="" loading="lazy"></a>`).join('')}</p>` : ''}
+      ${m.design ? `<p class="slop${m.design.remaining ? ' warn' : ''}">${m.design.remaining
+        ? `Anti-slop check: ${m.design.remaining} thing${m.design.remaining > 1 ? 's' : ''} to look at`
+        : m.design.found ? `Anti-slop check passed: fixed ${m.design.found} generic pattern${m.design.found > 1 ? 's' : ''}` : 'Anti-slop check passed'}</p>` : ''}
       ${m.learned?.length ? `<div class="learned"><p class="label">Learned</p>${m.learned.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}
       ${m.changes?.length && m.drafted ? `<p class="label">What changed</p><ul class="changes">${m.changes.map((c) => `<li>${esc(c.what)}<span>${esc(c.why)}</span></li>`).join('')}</ul>` : ''}
       ${m.applied?.length ? `<p class="label">Applied from what I’ve learned</p><div class="plain">${m.applied.map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}

@@ -25,7 +25,8 @@ When the ask is large, the page needs: a stated idea; a different opening (new h
 
 - **Only the two brand typefaces:** the light sans (`var(--sans)`) for almost everything and the italic serif (`var(--serif)`) for the accent word. Use their full range of size and weight.
 - **The italic serif accent** is the brand's signature: usually one per headline, two at most.
-- **Display sizes are big.** Campaign and hero headlines use `clamp()` up to 13–14vw. Tighten letter-spacing on large type; leave body text at normal spacing.
+- **One scale.** Use the fluid type and space steps (see the development skill) and skip steps for contrast: a `--step-8` headline over `--step-1` text reads as designed; five neighbouring sizes read as a template.
+- **Display sizes are big.** Campaign and hero headlines sit at `--step-7` or `--step-8`; the occasion's name in a campaign hero may go larger, up to 13–14vw. Tighten letter-spacing on large type, but not so much that letters touch; leave body text at normal spacing.
 - **Small print stays readable:** at least 13px, at full contrast.
 
 ## Colour

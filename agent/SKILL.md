@@ -46,7 +46,7 @@ When Jacob says "run a [occasion] campaign", draft the whole campaign in this tu
 **What a campaign changes**, in one draft:
 
 1. **The home hero becomes the campaign.** The occasion's name is the headline, in huge display type, the largest text on the whole site: "Black *Friday.*", "*Christmas* at OTMENS." Visitors know what's happening in the first second. Directly under it: the offer in large type, then the terms and end date in readable small print, then the one button.
-2. **The whole home page carries the campaign**, not just the hero. Straight after the hero, a bold offer band. Then the page's useful content (how it works, treatments) with campaign moments between it: the membership summary showing the offer, a statement or marquee that repeats it, and a closing panel that is the campaign's close. Every screen as you scroll should feel part of the campaign; the offer is never more than one scroll away.
+2. **The whole home page carries the campaign**, not just the hero. Straight after the hero, a bold offer band. Then the page's useful content (how it works, treatments) with campaign moments between it: the membership summary showing the offer, a statement band that repeats it, and a closing panel that is the campaign's close. Every screen as you scroll should feel part of the campaign; the offer is never more than one scroll away.
 3. **The whole site shows it**, through site-wide CSS and global settings: the announcement bar, the nav button (it becomes the campaign's action, e.g. "Choose Gold"), buttons and band colours.
 4. **The pricing cards** on the membership page show the offer.
 5. **A dedicated landing page** with a real composition: a campaign hero, the offer and terms, a statement, and a strong close that leads to the plan.

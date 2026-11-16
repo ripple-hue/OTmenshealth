@@ -109,13 +109,15 @@ const sanitizeHtml = (html, mapHref) => parseHtml(html, { mapHref }).html;
 // The words inside their strings are checked for health claims and voice by guard.js.
 const PROTECTED_IN_JS = /['"`][^'"`]*(\.legal|\.rx\b|\.footnote|\.promo-terms|\.footer|\bfooter\b)[^'"`]*['"`]|getElementsByTagName\(\s*['"`]footer|querySelector(All)?\(\s*['"`]footer/i;
 
-function checkJs(code) {
+// `wrapped`: the code runs inside a function (section `js` and `global.js` are wrapped in a
+// DOMContentLoaded handler by render.js), so an early `return` is legal and must parse.
+function checkJs(code, wrapped = false) {
   const p = [];
   const s = String(code || '');
   if (!s.trim()) return p;
   if (PROTECTED_IN_JS.test(s)) p.push('touches the footer, legal text or prescription notices, which must stay as they are');
   if (/<\/script/i.test(s)) p.push('contains "</script", which would end the script early');
-  try { new vm.Script(s); } catch (e) {
+  try { new vm.Script(wrapped ? `(function(section){\n${s}\n})` : s); } catch (e) {
     // Modules (import/export) can't be parsed as a classic script; that is allowed.
     if (!/import|export/.test(e.message)) p.push(`does not parse: ${e.message}`);
   }

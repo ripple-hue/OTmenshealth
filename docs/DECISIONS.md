@@ -49,3 +49,15 @@ Why things are the way they are. Newest last. If you want to reverse one of thes
 23. **The agent's instructions rewritten as one coherent set (16 November 2026).** After many incremental additions (decisions 11, 15, 19, 20, 22 and a temporary campaign rule), the owner said the agent "is not meeting my requirements" and asked for a rewrite. The core and the four always-on skills were rewritten around his eleven stated requirements rather than patched again, with an explicit priority order so conflicts resolve the same way every time (hard limits, then brand facts and taste memory, then core, then skills). The temporary campaign-takeover rule became the permanent campaign definition. Rules that were repeated in several places now live in one: limits in the core, how to build in development, the reply format in `src/agent.js`. The imagery skill is left out of the prompt while image generation is off, because its presence encouraged picture-led campaigns the checks then rejected. The code checks were not loosened or tightened by this rewrite.
 
 24. **Lenis runs on Motion's frame loop and starts before agent code (16 November 2026).** The owner asked that Lenis, Motion and the apple-design craft rules work together without interfering. Found: Lenis was started at the end of the page, after section scripts had already run, so agent code couldn't see `window.lenis`; and Lenis and Motion each ran their own animation loop. Lenis now starts from `<head>`, and when Motion is present it is driven by `Motion.frame.update` (the integration Lenis documents for Motion) so both update in one frame. Reduced motion is enforced in code for Motion too (`MotionGlobalConfig.skipAnimations`), matching the craft rule that accessibility settings are signals, not options. GSAP stays out.
+
+25. **Anti-slop toolkit, and no preplanned campaigns (16 November 2026).** The owner's pitch to Jacob is that the agent's work is not AI slop, shown live in a Loom video. Adopted:
+    - **Impeccable's detector**, run in code on every draft. It's deterministic and free, and it gives a visible "anti-slop check passed".
+    - **Humanizer's writing patterns.** The precise ones are checked in code; the rest are in the copywriting skill.
+    - **A Utopia-method fluid type and space scale**, so agent sections share one rhythm.
+    - **Split-type** for kinetic headlines.
+
+    Not adopted:
+    - **Taste Skill:** overlaps Impeccable and leans on GSAP.
+    - **gstack design-review as an install:** it runs in Claude Code, not on the server. A screenshot self-review modelled on it is a possible next step.
+
+    The owner explicitly rejected a "campaign kit" of pre-designed campaign sections and a hand-built reference campaign. The agent must create each campaign itself from the prompt, its skills and open-source tools, not from anything prepared for the demo. Impeccable's verdicts are advice, not blocks, because a few of its rules conflict with the brand (those are switched off) and a static scan can misjudge.

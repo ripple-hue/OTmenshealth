@@ -77,6 +77,30 @@ const expect = (name, cond, extra = '') => { console.log(`${cond ? 'PASS' : 'FAI
   out = await agent.run(base);
   expect('unreadable operations twice: no draft', !out.site);
 
+  // 7. Anti-slop design check (Impeccable): a draft with AI giveaways is sent back once, then the fix is drafted.
+  const first = current.pages.home.sections[0].id;
+  const slopSection = { id: 'bf-band', type: 'custom', dark: true, html: '<div class="wrap"><h2 class="title">Black <em>Friday.</em></h2><p class="lede">Three months of Gold free when you join annually.</p></div>', css: '.title{background:linear-gradient(90deg,#b8893a,#f3e3c3);-webkit-background-clip:text;background-clip:text;color:transparent}' };
+  const slopDraft = { ...good, operations: [{ op: 'add_section', page: 'home', after_id: first, section: slopSection }] };
+  const fix = { ...good, operations: [{ op: 'update_section', page: 'home', id: 'bf-band', fields: { css: '.title{color:var(--champagne)}' } }] };
+  script = [respond(slopDraft), respond(fix)];
+  requests.length = 0;
+  out = await agent.run(base);
+  const asked = JSON.stringify(requests[1]?.messages.slice(-1) || '');
+  expect('design check sends AI giveaways back once', requests.length === 2 && /anti-slop/.test(asked) && /Gradient text/.test(asked), `calls=${requests.length}`);
+  expect('the fixed draft is kept and reported as passed', !!out.site && out.design?.ran && out.design.found >= 1 && out.design.remaining === 0, JSON.stringify(out.design));
+
+  // 8. If the design fix itself breaks a hard check, the draft that passed the hard checks still stands.
+  const brokenFix = { ...good, operations: [{ op: 'update_section', page: 'home', id: 'bf-band', fields: { html: '<p>no wrap here</p>' } }] };
+  script = [respond(slopDraft), respond(brokenFix), respond(brokenFix)];
+  out = await agent.run(base);
+  expect('a failed design fix falls back to the passing draft', !!out.site && !out.failed && out.site.pages.home.sections.some((s) => s.id === 'bf-band' && s.html.includes('wrap')));
+
+  // 9. A clean draft passes the design check first time, with no extra call.
+  script = [respond(good)];
+  requests.length = 0;
+  out = await agent.run(base);
+  expect('a clean draft passes the design check with no extra call', !!out.site && requests.length === 1 && out.design?.ran && out.design.found === 0);
+
   console.log(fails ? `\n${fails} FAILED` : '\nAll passed');
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

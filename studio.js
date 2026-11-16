@@ -107,6 +107,7 @@ async function runAgent(message, rejected) {
     learned: learned.map((l) => l.rule), applied: out.lessons_applied || [],
     skills: (out.skills_used || []).filter((x) => agent.SKILLS.includes(x)),
     images: out.images || [],
+    design: drafted && out.design?.ran ? { found: out.design.found, remaining: out.design.remaining } : null,
     needs: out.needs_from_jacob || [], declined: out.declined || [], failed: !!out.failed,
   });
   store.save(s);

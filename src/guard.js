@@ -74,6 +74,16 @@ const COMPLIANCE = [
 const SLOP = [
   [/\b(elevate|unlock|seamless(ly)?|cutting[- ]edge|revolutioni[sz]e\w*|empower\w*|game[- ]chang\w+|next[- ]level|reimagin\w+|transform your|your journey|fast-paced)\b/i, 'uses a generic marketing phrase'],
   [/!/, 'uses an exclamation mark'],
+  // Signs of AI writing, adapted from blader/humanizer (MIT), which is built on Wikipedia's "Signs of AI
+  // writing". Only the patterns precise enough to check by rule are here; the rest are in the copywriting skill.
+  [/\b(delve\w*|tapestry|testament|pivotal|meticulous(ly)?|bolster\w*|garner\w*|underscor\w+|showcas\w+|vibrant|intricac\w+|deep dive|crucial|interplay)\b/i, 'uses a word that marks text as AI-written'],
+  [/\b(nestled|in the heart of|breathtaking|stunning|groundbreaking|renowned|world[- ]class|state[- ]of[- ]the[- ]art|supercharg\w+|streamlin\w+|best[- ]in[- ]class|unparalleled|second to none)\b/i, 'uses advertising cliché'],
+  [/\b(let'?s dive in|here'?s the thing|without further ado|here'?s what you need to know|real talk|let that sink in|read that again|at its core|the real question is|what really matters)\b/i, 'stages the point instead of making it'],
+  [/\bnot (just|only|merely) (a|an|the|about|for)\b|\bit'?s not (just )?(a|an|about)\b[^.]{0,40}[,.;] ?it'?s\b/i, 'uses the "not X, but Y" construction'],
+  [/(^|[.?] )Not an? [^.]{1,40}\. An? /, 'uses the "Not a X. A Y." construction'],
+  [/\b(serves as|stands as|boasts)\b/i, 'avoids a plain "is" or "has"'],
+  [/—| – | -- /, 'uses a dash as a connector (use a full stop or comma)'],
+  [/\b(I hope this helps|great question|certainly|you'?re absolutely right)\b/i, 'contains chatbot phrasing'],
 ];
 
 const LIMITS = { headline: 100, eyebrow: 50, title: 70 }; // loosened 15 November 2026 (owner: more freedom)
@@ -190,7 +200,7 @@ function validate(content, prev, opts = {}) {
         accents.push(...code.accentHues(css).map((h) => [h, where]));
         cssImages.push(...cssUrls(css));
       }
-      if (sec.js) k.push(...code.checkJs(sec.js).map((x) => `The JavaScript of ${where} ${x}.`));
+      if (sec.js) k.push(...code.checkJs(sec.js, true).map((x) => `The JavaScript of ${where} ${x}.`));
       if (!parsed.text && !sec.js) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
       // Without the page container, text runs to the very edge of the screen (seen 15 November: a
       // Christmas hero clipped at the left edge). Full-bleed images can sit outside the container.
@@ -216,7 +226,7 @@ function validate(content, prev, opts = {}) {
   if (g.js != null) {
     if (typeof g.js !== 'string') k.push('The site-wide JavaScript must be text.');
     else {
-      k.push(...tooLong('The site-wide JavaScript', g.js, CODE_LIMITS.globalJs), ...code.checkJs(g.js).map((x) => `The site-wide JavaScript ${x}.`));
+      k.push(...tooLong('The site-wide JavaScript', g.js, CODE_LIMITS.globalJs), ...code.checkJs(g.js, true).map((x) => `The site-wide JavaScript ${x}.`));
       if (/\bgsap\b|greensock/i.test(g.js)) k.push('The site-wide JavaScript uses GSAP, whose licence is not cleared for this product.');
     }
   }

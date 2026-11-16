@@ -13,8 +13,8 @@
   var me = document.currentScript && document.currentScript.src;
   var base = me ? me.replace(/ot-shader\.js(\?.*)?$/, 'paper/') : '/vendor/paper/';
   var FILES = { grain: 'grain-gradient', mesh: 'mesh-gradient', rays: 'god-rays', warp: 'warp' };
-  // Only the quieter grain shapes; Paper's blob and sphere read as screensavers next to this brand.
-  var GRAIN_SHAPES = { wave: 1, corners: 4, ripple: 5 };
+  // Paper's dots and truchet patterns are left out; blob (the owner's favourite) and sphere stay.
+  var GRAIN_SHAPES = { wave: 1, corners: 4, ripple: 5, blob: 6, sphere: 7 };
   var WARP_SHAPES = { checks: 0, stripes: 1, edge: 2 };
   var FIT = { none: 0, contain: 1, cover: 2 };
   var cache = {};

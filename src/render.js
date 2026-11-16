@@ -380,7 +380,12 @@ sections.custom = (s) => {
 
 // Smooth scrolling (Lenis, MIT licence) on every page unless global.smoothScroll is false.
 // Mouse and trackpad only: touch keeps native scrolling. Off for visitors who ask for reduced motion.
-const LENIS_INIT = `<script>document.addEventListener('DOMContentLoaded',function(){if(!window.Lenis||matchMedia('(prefers-reduced-motion: reduce)').matches)return;window.lenis=new Lenis({autoRaf:true,anchors:{offset:-100},allowNestedScroll:true});});</script>`;
+// Starts site motion before any agent code runs (it sits in <head>, so its DOMContentLoaded handler is
+// registered first): agent scripts can rely on window.lenis existing. When Motion is loaded, Lenis runs
+// on Motion's frame loop (Lenis's documented Motion integration) so scroll-linked animations and smooth
+// scrolling update in the same frame instead of two competing loops. Reduced motion turns Lenis off and
+// makes every Motion animation jump to its end state, whatever the agent's code does.
+const motionInit = (smooth) => `<script>document.addEventListener('DOMContentLoaded',function(){var M=window.Motion,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;if(M&&M.MotionGlobalConfig&&reduce)M.MotionGlobalConfig.skipAnimations=true;${smooth ? "if(!window.Lenis||reduce)return;var sync=!!(M&&M.frame&&M.frame.update);var l=window.lenis=new Lenis({autoRaf:!sync,anchors:{offset:-100},allowNestedScroll:true});if(sync)M.frame.update(function(d){l.raf(d.timestamp)},true);" : ''}});</script>`;
 
 // In Studio previews, which run sandboxed, the page reports its scroll position to the Studio and
 // follows the other pane when asked (the Studio can't reach into a sandboxed page directly).
@@ -479,6 +484,7 @@ function renderPageInner(site, key, opts) {
 ${siteCss ? `<style id="site-css">${siteCss}</style>` : ''}
 ${g.smoothScroll === false ? '' : '<script src="/vendor/lenis.min.js" defer></script>'}
 ${(Array.isArray(g.scripts) ? g.scripts : []).map((u) => `<script src="${esc(u)}" defer></script>`).join('\n')}
+${motionInit(g.smoothScroll !== false)}
 </head>
 <body class="${overHero ? 'has-hero' : ''}">
 ${header(g, overHero)}
@@ -489,7 +495,6 @@ ${footer(g)}
 <script>
 (function(){var n=document.querySelector('[data-nav]');if(!n)return;var f=function(){n.classList.toggle('is-stuck',window.scrollY>40)};f();window.addEventListener('scroll',f,{passive:true})})();
 </script>
-${g.smoothScroll === false ? '' : LENIS_INIT}
 ${g.js ? afterLoad(g.js) : ''}
 ${opts.base ? PREVIEW_SYNC : ''}
 ${opts.highlight?.length ? highlightScript(opts.highlight, opts.scroll !== false) : ''}

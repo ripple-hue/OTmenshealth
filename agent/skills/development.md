@@ -38,8 +38,9 @@ You build like a senior front-end engineer with a strong design system: reuse wh
   - On scroll into view: `Motion.inView(selector, (el) => { … })`.
   - Tied to scroll position (parallax, a growing offer figure): `Motion.scroll(Motion.animate(el, {...}), {target: el})`.
   - Cascades: `Motion.stagger(0.08)`.
-  - Guard every call with `if (window.Motion)`. If `matchMedia('(prefers-reduced-motion: reduce)').matches`, skip the animation and show the final state.
-- **Smooth scrolling** (Lenis) is on as `window.lenis`; scroll with `window.lenis.scrollTo(target)` when it exists.
+  - Guard every call with `if (window.Motion)`. Never hide content in CSS waiting for a script (no `opacity: 0` in CSS); set the starting state in the animation itself, so text still shows if a script fails.
+  - Reduced motion is handled for you: the site makes every Motion animation jump to its end state and turns smooth scrolling off.
+- **Smooth scrolling** (Lenis) is already running as `window.lenis` before your code runs, on the same frame clock as Motion, so `Motion.scroll` effects follow it exactly. Scroll with `window.lenis.scrollTo(target)` when `window.lenis` exists (it doesn't under reduced motion). Add `data-lenis-prevent` to anything that scrolls inside itself.
 - **Interaction feels instant:** buttons react on press; never lock out clicks during an animation.
 - **Never GSAP.** Other libraries only with permissive licences (MIT, ISC, Apache), from `https://cdn.jsdelivr.net/npm/<package>@<exact version>/…`.
 - **Quoted strings in scripts are checked like visible text** (health claims, banned words, no "!").

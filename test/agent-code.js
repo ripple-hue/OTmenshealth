@@ -163,11 +163,14 @@ const withJs = applyOps(current, [
 ], current);
 const page = renderPage(withJs, 'home');
 expect('section js runs after load with `section` set', page.includes(`var section=document.querySelector('[data-section="quiz"]');`) && page.includes('section.dataset.ready'));
-expect('global.scripts load in the head, deferred', /<script src="https:\/\/cdn\.example\.com\/lib@1\.0\.0\/lib\.js" defer><\/script>\s*<\/head>/.test(page));
+expect('global.scripts load in the head, deferred', /<script src="https:\/\/cdn\.example\.com\/lib@1\.0\.0\/lib\.js" defer><\/script>[\s\S]*<\/head>/.test(page) && page.indexOf('lib.js') < page.indexOf('</head>'));
+expect('motion starts before any agent code (Lenis exists when section js runs)', page.indexOf('new Lenis(') < page.indexOf('</head>') && page.indexOf('new Lenis(') < page.indexOf('section.dataset.ready'));
+expect('Lenis runs on the Motion frame loop when Motion is loaded', page.includes('M.frame.update(') && page.includes('autoRaf:!sync'));
+expect('reduced motion makes Motion animations jump to the end', page.includes('MotionGlobalConfig.skipAnimations=true'));
 expect('global.js is on the page', page.includes('window.__site = 1;'));
 expect('Lenis smooth scrolling is on by default', page.includes('/vendor/lenis.min.js') && page.includes('new Lenis('));
 const noSmooth = renderPage(applyOps(current, [{ op: 'update_global', fields: { smoothScroll: false } }], current), 'home');
-expect('smoothScroll: false turns Lenis off', !noSmooth.includes('lenis.min.js'));
+expect('smoothScroll: false turns Lenis off', !noSmooth.includes('lenis.min.js') && !noSmooth.includes('new Lenis(') && noSmooth.includes('skipAnimations'));
 expect('preview scroll sync only in Studio previews', !page.includes("ot:'scroll'") && renderPage(withJs, 'home', { base: '/view/draft' }).includes("ot:'scroll'"));
 const { renderLocked } = require(path.join(repo, 'src/render'));
 const locked = renderLocked(withJs, 'Checkout');

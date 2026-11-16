@@ -29,12 +29,14 @@ const IMAGE_NOTES = {
 // The agent's skills, in the order they are given to it. Each is a separate file in agent/skills/
 // so it can be improved on its own: copy problems go in copywriting.md, layout problems in design.md, and so on.
 const SKILLS = ['copywriting', 'design', 'flow-building', 'development', 'imagery'];
+const activeSkills = () => SKILLS.filter((n) => n !== 'imagery' || images.enabled());
 const stripFrontmatter = (s) => s.replace(/^---[\s\S]*?---\n/, '');
 
 function systemPrompt() {
   const library = Object.entries(SPEC).map(([type, s]) => `- ${type}: ${s.doc} Required: ${s.req.join(', ')}.`).join('\n');
   const imgs = imageLibrary().filter((i) => i.startsWith('/img/')).map((i) => `- ${i}${IMAGE_NOTES[i] ? ': ' + IMAGE_NOTES[i] : ''}`).join('\n');
-  const skills = SKILLS.map((name) => stripFrontmatter(file('agent', 'skills', `${name}.md`))).join('\n\n---\n\n');
+  // The imagery skill only matters when image generation is on; otherwise it would invite pictures the checks reject.
+  const skills = activeSkills().map((name) => stripFrontmatter(file('agent', 'skills', `${name}.md`))).join('\n\n---\n\n');
   return `${stripFrontmatter(file('agent', 'SKILL.md'))}
 
 ---
@@ -49,11 +51,11 @@ ${file('brand', 'brand-guide.md')}
 
 # How you work in this Studio
 
-Jacob talks to you in a chat next to a preview of his site. The brand guide is above. His taste memory and the current site arrive with each message.
+Jacob talks to you in a chat next to a live preview of his site. His taste memory and the current site arrive with each message.
 
 The site is a JSON document: \`global\` (announcement bar, nav, navCta, footer, and optional site-wide \`css\`, \`js\`, \`scripts\` and \`smoothScroll\`) and \`pages\`, each a list of sections. Every section has an \`id\`, a \`type\` from the library below, and that type's fields.
 
-You design and build in two ways. Use the library sections where they fit: they are already designed and tested. Where they don't, write code: a \`custom\` section with your own HTML, CSS and JavaScript, and site-wide CSS and JavaScript that restyle or add behaviour to any part of the site. You can replace the home hero with a custom one, restyle the nav, announcement bar, buttons and every section type, build interactive pieces (quizzes, sliders, tabs, calculators, scroll motion), embed things, and load MIT-style open-source libraries from a CDN. Smooth scrolling (Lenis) is already on. You cannot use colours or fonts outside the brand, use GSAP, collect personal or health information (there is no server, and intake is protected), or change the footer, legal text, prescription notices, checkout, the member portal or the medical intake. Code checks all of this, and checks the words inside your scripts for health claims too. Your scripts run in previews in a sandbox, so don't rely on cookies or localStorage there.
+Build with library sections where they fit (they are designed and tested) and with \`custom\` sections and site-wide CSS and JavaScript where they don't. The development skill says how; the hard limits say what's off-limits. Code checks both.
 
 ## Section library
 ${library}
@@ -69,7 +71,7 @@ ${imgs}
 
 ${images.enabled()
   ? `You can also generate new images with the \`generate_images\` tool, at most ${images.MAX_PER_REQUEST} per request (see the imagery skill). Call it before \`respond_to_jacob\`, wait for the result, then use only the images it returns as OK, by their exact /media/... paths. Each image is checked before you get it; a failed one is simply not available. Images made for earlier drafts are listed with each message and can be reused at no cost.`
-  : 'Image generation is OFF. Use only the OTMENS photos in the image library above (/img/...). Do not reuse /media/... images from earlier drafts and do not use outside image URLs: the checks reject both. If a campaign wants atmosphere the photos can\'t give, use typography, colour, gradients and motion instead of a picture. If a change really needs a new photograph, say so in `needs_from_jacob` and describe the shot.'}
+  : 'Image generation is OFF. Use only the photos above (/img/...). Images from earlier drafts (/media/...) and outside image URLs are rejected. Where no photo fits, use type, colour, gradients and motion. If a change truly needs a new photograph, describe the shot in `needs_from_jacob`.'}
 
 ## Responding
 
@@ -90,14 +92,12 @@ Always answer by calling \`respond_to_jacob\` exactly once. Never answer in plai
 - \`changes\`: each visible change this turn, as {what, why}. Plain words. "why" is the marketing or brand reason.
 - \`lessons_learned\`: only when Jacob has just told you a preference, especially when he rejects a draft. Each is one specific, reusable rule in the imperative, about his taste, that would change a future draft. Not a note about this one change.
 - \`lessons_applied\`: taste-memory rules you actively followed this turn, quoted as saved.
-- \`skills_used\`: which of your skills this turn's changes drew on: ${SKILLS.join(', ')}.
+- \`skills_used\`: which of your skills this turn's changes drew on: ${activeSkills().join(', ')}.
 - \`needs_from_jacob\`: at most three things you need him to confirm or supply, one short sentence each. \`declined\`: anything you refused and why.
 
-Prefer drafting to asking. Only hold back a draft when you truly cannot tell what he wants.
+Prefer drafting to asking. When Jacob rejects a draft, say in one sentence what was wrong, save the lesson and send a new draft; don't defend the old one.
 
-When Jacob rejects a draft: say in one sentence what you understood was wrong, save the lesson, and produce a new draft that fixes it. Do not defend the old one.
-
-After you respond, your draft is checked by code for unsafe or off-brand code, health claims, generic phrases, broken links and whether every page still renders. If a check fails you get the errors back and must fix them with another \`respond_to_jacob\` call that sends only the corrective operations.`;
+After you respond, code checks the draft. If a check fails you get the errors back; fix them with another \`respond_to_jacob\` call that sends only the corrective operations.`;
 }
 
 const TOOL = {

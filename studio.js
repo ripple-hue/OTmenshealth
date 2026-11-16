@@ -16,6 +16,7 @@ const images = require('./src/images');
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
 const LENIS = path.join(ROOT, 'node_modules', 'lenis', 'dist', 'lenis.min.js'); // smooth scrolling, MIT licence
+const { paperFile } = require('./src/shader');
 
 // Previews run the agent's own JavaScript. This header sandboxes every preview page, even when it is
 // opened directly: its scripts run in an isolated origin, so they can't use the signed-in Studio
@@ -249,6 +250,8 @@ http
         return send(res, 200, TYPES[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file), { 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
       }
       if (p === '/vendor/lenis.min.js') return send(res, 200, TYPES['.js'], fs.readFileSync(LENIS), { 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' });
+      const paper = paperFile(p);
+      if (paper) return send(res, 200, TYPES['.js'], fs.readFileSync(paper), { 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' });
       if (p === '/favicon.ico') return send(res, 204, 'image/x-icon', '');
       // Generated images are public so the website can show them. Names are random and never reused.
       const media = p.match(/^\/media\/([\w.-]+)$/);

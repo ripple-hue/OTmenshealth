@@ -180,6 +180,15 @@ expect('preview scroll sync only in Studio previews', !page.includes("ot:'scroll
 const { renderLocked } = require(path.join(repo, 'src/render'));
 const locked = renderLocked(withJs, 'Checkout');
 expect('protected pages get none of the agent code', !locked.includes('window.__site') && !locked.includes('cdn.example.com') && !locked.includes('lenis'));
+{
+  // Shader backgrounds: the helper loads only when agent code uses it; its colours obey the palette.
+  const shader = (colors) => applyOps(current, [{ op: 'update_global', fields: { js: `if (window.OTShader) OTShader.mount(document.body, {colors: ${JSON.stringify(colors)}});` } }], current);
+  expect('the shader helper loads only when agent code uses OTShader', renderPage(shader(['#8a6236']), 'home').includes('/vendor/ot-shader.js') && !page.includes('ot-shader.js'));
+  expect('shader colours in scripts count toward the one accent', !validate(shader(['#7a1414', '#1d4d8a']), current).ok);
+  expect('brand shader colours with one accent pass', validate(shader(['#7a1414', '#8a6236', '#0c0a08']), current).ok);
+  const { paperFile } = require(path.join(repo, 'src/shader'));
+  expect('Paper Shaders files are served, and nothing outside them', !!paperFile('/vendor/paper/shaders/grain-gradient.js') && !paperFile('/vendor/paper/../package.json') && !paperFile('/vendor/paper/shaders/../../index.d.ts'));
+}
 expect('a stray </script in agent js cannot end the tag early', renderPage(applyOps(current, [{ op: 'update_global', fields: { js: 'var s = "</script><b>x</b>";' } }], current), 'home').includes('<\\/script><b>x</b>'));
 
 console.log(fails ? `\n${fails} FAILED` : '\nAll passed');

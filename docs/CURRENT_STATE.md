@@ -13,6 +13,9 @@ Snapshot as of 15 November 2026, at commit `fd47950` on `main`, deployed to both
     - Set `DESIGN_CHECK=off` to disable it.
     - The linux-x64 binary comes from the package's optional dependencies; not yet confirmed running on Railway.
     - Static mode only: layout rules that need a real browser (text overflow, content hidden at rest) aren't run.
+  - **Shader backgrounds (not yet deployed, decision 26).** `@paper-design/shaders` 0.0.82 (Apache 2.0) is served by both servers from `node_modules` at `/vendor/paper/...` (`src/shader.js`, files under `dist/` only). `public/vendor/ot-shader.js` exposes `window.OTShader.mount(el, {type, colors, back, speed, ...})` with four types (`grain` with corners/wave/ripple, `rays`, `warp`, `mesh`); `render.js` adds it to a page only when agent code mentions `OTShader`. It needs WebGL 2 (otherwise nothing is drawn and the section's own background shows), draws one still frame under reduced motion, pauses off screen, and caps pixels for phones. Colours written in agent scripts now count toward the one-accent rule (`guard.js`). Checked in a browser at 1024 px and 375 px (all four types render, no horizontal scroll); `npm test` covers loading, colours and the file route.
+  - **Composition rules from the first live Black Friday draft.** That draft dropped the hero photo, set the headline at about two thirds of the width, used the red accent only as hairlines and stated the dates three times. The design skill now says: never plainer than the live page, keep and transform the strongest asset, commit to the accent, say each fact once, occasion name near full width. `agent/SKILL.md`: the year-round Gold offer must not be presented as ending with a campaign.
+  - **Design dials and usability rules (not yet deployed).** The design skill now has the agent set boldness, motion and density from 1 to 10 before building (an idea from Taste Skill), plus 44px tap targets, hover, press and focus states, and contrast ratios (from UI/UX Pro Max). These are prompt rules only, not checked in code. Neither skill was installed (see decision 25).
   - **Humanizer writing patterns** (blader/humanizer, MIT, built on Wikipedia's "Signs of AI writing").
     - In code: eight new phrase checks in `SLOP` in `src/guard.js`: AI vocabulary, advertising clichés, staged run-ups, "not X, but Y" and "Not a X. A Y.", "serves as"/"boasts", dashes as connectors, chatbot phrasing.
     - In the copywriting skill: the patterns too loose for a regex.
@@ -103,7 +106,7 @@ README.md            Short run guide (partly out of date on the section library)
 docs/                These documents.
 ```
 
-Dependencies: Node 20 or later, four npm packages: `@anthropic-ai/sdk`; `sharp` (converts generated images to WebP; it ships prebuilt native binaries); `lenis` (smooth scrolling, MIT; its browser file is served from `node_modules`); `impeccable` (the anti-slop design check, Apache 2.0; runs a prebuilt native binary for the platform). No framework, no build step, no database.
+Dependencies: Node 20 or later, five npm packages: `@paper-design/shaders` (WebGL shader backgrounds, Apache 2.0, pinned exactly because it is pre-1.0; served from `node_modules`); `@anthropic-ai/sdk`; `sharp` (converts generated images to WebP; it ships prebuilt native binaries); `lenis` (smooth scrolling, MIT; its browser file is served from `node_modules`); `impeccable` (the anti-slop design check, Apache 2.0; runs a prebuilt native binary for the platform). No framework, no build step, no database.
 
 ## How it works
 

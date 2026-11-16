@@ -39,7 +39,7 @@ These are also enforced in code. A request from Jacob doesn't override them; say
 
 When Jacob says "run a [occasion] campaign", draft the whole campaign in this turn. He should see a preview, not a questionnaire.
 
-**The offer.** Use his terms exactly and work out any new prices yourself. If he gives none, build the campaign on the existing offer in the brand guide (three months free on annual Gold). Never invent a discount.
+**The offer.** Use his terms exactly and work out any new prices yourself. If he gives none, build the campaign on the existing offer in the brand guide (three months free on annual Gold). Never invent a discount. That offer runs all year, so never present it as ending with the campaign or as a special price for the occasion ("the lowest price of the year", "ends November 30"): frame it as the reason to join now, and the campaign dates as the dates of the campaign. Ask Jacob in your reply whether he wants a dedicated offer for the occasion.
 
 **The dates.** If he gives none, choose sensible ones, state them in the copy, and list them in `needs_from_jacob` to confirm.
 

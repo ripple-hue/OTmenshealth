@@ -484,6 +484,7 @@ function renderPageInner(site, key, opts) {
 ${siteCss ? `<style id="site-css">${siteCss}</style>` : ''}
 ${g.smoothScroll === false ? '' : '<script src="/vendor/lenis.min.js" defer></script>'}
 ${(Array.isArray(g.scripts) ? g.scripts : []).map((u) => `<script src="${esc(u)}" defer></script>`).join('\n')}
+${/\bOTShader\b/.test(String(g.js || '') + JSON.stringify(page.sections || [])) ? '<script src="/vendor/ot-shader.js" defer></script>' : ''}
 ${motionInit(g.smoothScroll !== false)}
 </head>
 <body class="${overHero ? 'has-hero' : ''}">

@@ -200,7 +200,11 @@ function validate(content, prev, opts = {}) {
         accents.push(...code.accentHues(css).map((h) => [h, where]));
         cssImages.push(...cssUrls(css));
       }
-      if (sec.js) k.push(...code.checkJs(sec.js, true).map((x) => `The JavaScript of ${where} ${x}.`));
+      if (sec.js) {
+        k.push(...code.checkJs(sec.js, true).map((x) => `The JavaScript of ${where} ${x}.`));
+        // Colours written in scripts (shader colours, inline styles) follow the same palette rule as CSS.
+        accents.push(...code.accentHues(code.jsStrings(sec.js).join(' ')).map((h) => [h, `the JavaScript of ${where}`]));
+      }
       if (!parsed.text && !sec.js) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
       // Without the page container, text runs to the very edge of the screen (seen 15 November: a
       // Christmas hero clipped at the left edge). Full-bleed images can sit outside the container.
@@ -217,6 +221,7 @@ function validate(content, prev, opts = {}) {
       cssImages.push(...cssUrls(g.css));
     }
   }
+  if (typeof g.js === 'string') accents.push(...code.accentHues(code.jsStrings(g.js).join(' ')).map((h) => [h, 'the site-wide JavaScript']));
   // One campaign accent: every colour outside the brand's warm family and the neutrals must be one hue family.
   if (accents.length) {
     const [first] = accents[0];

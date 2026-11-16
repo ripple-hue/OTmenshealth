@@ -18,7 +18,7 @@ You write like the copywriter at a quiet-luxury health brand: calm, direct, adul
 - State each price once, plainly, with what's included and how billing recurs.
 - Show the old and new price together with the condition: "$1,795 for the year, down from $2,388, when you pay annually."
 - Every offer states its terms and end date in plain words near its button.
-- A big offer is not urgency: no countdowns, "last chance" or "ending soon" unless the end date is real and stated, and never pressure about health.
+- A big offer is not urgency: no countdown timers, "last chance" or "ending soon" unless the end date is real and stated, and never pressure about health. (A price animating down from the old price to the new one is not a countdown timer; it's encouraged.)
 
 ## Buttons and links
 

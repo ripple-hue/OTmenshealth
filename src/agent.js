@@ -69,7 +69,7 @@ ${imgs}
 
 ${images.enabled()
   ? `You can also generate new images with the \`generate_images\` tool, at most ${images.MAX_PER_REQUEST} per request (see the imagery skill). Call it before \`respond_to_jacob\`, wait for the result, then use only the images it returns as OK, by their exact /media/... paths. Each image is checked before you get it; a failed one is simply not available. Images made for earlier drafts are listed with each message and can be reused at no cost.`
-  : 'You cannot generate new images right now (image generation is not set up). Use the library. If a change really needs a new image, say so in `needs_from_jacob` and describe the shot.'}
+  : 'Image generation is OFF. Use only the OTMENS photos in the image library above (/img/...). Do not reuse /media/... images from earlier drafts and do not use outside image URLs: the checks reject both. If a campaign wants atmosphere the photos can\'t give, use typography, colour, gradients and motion instead of a picture. If a change really needs a new photograph, say so in `needs_from_jacob` and describe the shot.'}
 
 ## Responding
 
@@ -367,7 +367,7 @@ async function run({ message, rejected, draft, current, memory, version, history
     let applied = true;
     try {
       site = applyOps(site, ops, current);
-      report = validate(site, current);
+      report = validate(site, current, { photosOnly: !images.enabled() });
       errors = report.errors;
     } catch (e) {
       errors = [e.message];

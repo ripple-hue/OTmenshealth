@@ -133,6 +133,16 @@ for (const [name, sec] of Object.entries(bad)) {
 const noWrap = applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'edge', type: 'custom', html: '<h2 class="title">Text with no container</h2>' } }], current);
 expect('blocks a custom section with no .wrap container', !validate(noWrap, current).ok, validate(noWrap, current).errors[0]);
 
+// Image generation off (photosOnly): only the OTMENS photos in new drafts; pictures already on the site stay allowed.
+const withPic = (src, css) => applyOps(current, [{ op: 'add_section', page: 'home', after_id: 'home-hero', section: { id: 'pic', type: 'custom', html: `<div class="wrap"><p>Hi there</p>${src ? `<img src="${src}" alt="x">` : ''}</div>`, ...(css ? { css } : {}) } }], current);
+const po = { photosOnly: true };
+expect('photos only: a library photo is fine', validate(withPic('/img/hormone.jpg'), current, po).ok, validate(withPic('/img/hormone.jpg'), current, po).errors[0] || '');
+expect('photos only: blocks a stored generated image', !validate(withPic('/media/gen-old-slop.png'), current, po).ok, validate(withPic('/media/gen-old-slop.png'), current, po).errors[0]);
+expect('photos only: blocks an outside image', !validate(withPic('https://example.com/stock.jpg'), current, po).ok);
+expect('photos only: blocks a generated image in CSS', !validate(withPic('', 'background: url(/media/gen-old-slop.png);'), current, po).ok);
+const prevWithMedia = applyOps(current, [{ op: 'update_section', page: 'home', id: 'home-hero', fields: { image: '/img/hero.jpg', note: '/media/gen-already-live.webp' } }], current);
+expect('photos only: a picture already on the site stays allowed', validate(withPic('/media/gen-already-live.webp'), prevWithMedia, po).errors.every((e) => !/OTMENS photos/.test(e)));
+
 const globalBad = {
   'site-wide CSS hiding the footer': { css: '.footer { display: none }' },
   'site-wide JS hiding the legal text': { js: 'document.querySelectorAll(".legal").forEach(function (e) { e.remove(); });' },

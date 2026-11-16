@@ -133,7 +133,7 @@ const api = {
   approve() {
     const s = store.state();
     if (!s.draft) return { error: 'There is no draft to approve.' };
-    const report = validate(s.draft.content, store.version(s.head)); // re-check at the moment of approval
+    const report = validate(s.draft.content, store.version(s.head), { photosOnly: !images.enabled() }); // re-check at the moment of approval
     if (!report.ok) return { error: 'This draft no longer passes the checks: ' + report.errors[0] };
     if (report.markers.length) return { error: 'This draft still has a placeholder that needs your input: ' + report.markers[0] };
     const n = store.addVersion(s, s.draft.content, s.draft.summary);

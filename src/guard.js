@@ -114,7 +114,16 @@ const where = (trail) => {
 
 const numbers = (content) => new Set(texts(content).flatMap((t) => (t.text.match(/\$\d[\d,]*(\.\d+)?|\d+\s?%/g) || []).map((n) => n.replace(/,$/, ''))));
 
-function validate(content, prev) {
+// The pictures a site document uses: every /media/... path and every outside image URL in it.
+const imageRefs = (doc) => new Set((JSON.stringify(doc || {}).match(/\/media\/[\w.-]+|https?:\/\/[^"'\s)\\]+/g) || []));
+const cssUrls = (css) => [...String(css || '').matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/gi)].map((m) => m[1].trim());
+
+// opts.photosOnly: image generation is off, so a NEW draft may only add pictures from public/img.
+// (Pictures already in `prev` stay allowed, so older versions can still be approved and pushed.)
+function validate(content, prev, opts = {}) {
+  const photosOnly = !!opts.photosOnly;
+  const prevImages = imageRefs(prev);
+  const cssImages = [];
   const errors = [];
   const checks = [];
   const add = (name, list) => {
@@ -177,7 +186,10 @@ function validate(content, prev) {
       const parsed = code.parseHtml(sec.html);
       k.push(...parsed.problems.map((x) => `The HTML of ${where} ${x}.`));
       if (sec.css) k.push(...code.checkCss(sec.css).map((x) => `The CSS of ${where} ${x}.`));
-      for (const css of [sec.css || '', ...parsed.styles]) accents.push(...code.accentHues(css).map((h) => [h, where]));
+      for (const css of [sec.css || '', ...parsed.styles]) {
+        accents.push(...code.accentHues(css).map((h) => [h, where]));
+        cssImages.push(...cssUrls(css));
+      }
       if (sec.js) k.push(...code.checkJs(sec.js).map((x) => `The JavaScript of ${where} ${x}.`));
       if (!parsed.text && !sec.js) k.push(`Section "${sec.id}" on the ${key} page has no visible text.`);
       // Without the page container, text runs to the very edge of the screen (seen 15 November: a
@@ -192,6 +204,7 @@ function validate(content, prev) {
     else {
       k.push(...tooLong('The site-wide CSS', g.css, CODE_LIMITS.globalCss), ...code.checkCss(g.css).map((x) => `The site-wide CSS ${x}.`));
       accents.push(...code.accentHues(g.css).map((h) => [h, 'the site-wide CSS']));
+      cssImages.push(...cssUrls(g.css));
     }
   }
   // One campaign accent: every colour outside the brand's warm family and the neutrals must be one hue family.
@@ -229,11 +242,19 @@ function validate(content, prev) {
       const ok = String(v).startsWith('#') || /^(https?:\/\/|mailto:|tel:)/i.test(String(v)) || paths.has(base || '/') || Object.keys(LOCKED).includes(base);
       if (!ok) l.push(`Link "${v}" goes nowhere.`);
     }
-    if (key === 'image' && !okImages.includes(v) && !/^https:\/\//.test(String(v))) l.push(`Image "${v}" is not in the image library.`);
+    if (key === 'image') {
+      const src = String(v);
+      if (photosOnly) {
+        // Generation is off: new drafts may use only the real OTMENS photos (or pictures already on the site).
+        if (!/^\/img\/[\w.-]+$/.test(src) && !prevImages.has(src)) l.push(`Image "${src}" isn't one of the OTMENS photos. While image generation is off, use only the photo library (/img/...): no images made for earlier drafts and no outside images.`);
+        else if (/^\/img\//.test(src) && !okImages.includes(src)) l.push(`Image "${src}" is not in the image library.`);
+      } else if (!okImages.includes(src) && !/^https:\/\//.test(src)) l.push(`Image "${src}" is not in the image library.`);
+    }
     if (key === 'visual' && !VISUALS.includes(v)) l.push(`Visual "${v}" does not exist.`);
   };
   walk(content, (v, trail) => checkLink(trail[trail.length - 1], v));
   customLinks.forEach(([key, v]) => checkLink(key, v));
+  cssImages.forEach((v) => checkLink('image', v));
   add('Every link and image resolves', l);
 
   // 5. Health-claim compliance (including the visible words of custom sections)

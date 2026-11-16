@@ -71,7 +71,7 @@ function parseHtml(html, { mapHref = (h) => h } = {}) {
       }
       if (name === 'src' || name === 'poster') {
         if (tag === 'script') isExternalScript = true;
-        else if (/^\/(img|media)\//.test(value.trim())) images.push(value.trim());
+        else if (value.trim() && tag !== 'iframe') images.push(value.trim()); // every picture source, checked in guard.js
       }
       if (TEXT_ATTRS.has(name)) text.push(value);
       attrs += ` ${SVG_CASE[name] || a[1]}="${escAttr(value)}"`;
